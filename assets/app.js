@@ -78,7 +78,7 @@ export async function initSecretAdminEntry() {
       if (user) {
         const { data: profile } = await supabase
           .from('profiles').select('role').eq('id', user.id).single()
-        if (profile?.role === 'admin') { location.href = 'admin.html'; return }
+        if (profile && profile.role === 'admin') { location.href = 'admin.html'; return }
       }
       location.href = 'admin-entry.html'
       return
@@ -93,7 +93,7 @@ export async function initSecretAdminEntry() {
 
 // ============ 工具 ============
 export function escapeHtml(s) {
-  return String(s ?? '')
+  return String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 }
@@ -110,7 +110,8 @@ export function formatTime(ts) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
-export function showMsg(el, text, type = 'error') {
+export function showMsg(el, text, type) {
+  if (type == null) type = 'error'
   el.className = 'msg msg-' + type
   el.textContent = text
   el.style.display = 'block'
@@ -120,7 +121,7 @@ export function showMsg(el, text, type = 'error') {
 
 export function initial(name) {
   if (!name) return '?'
-  const ch = name.trim()[0]
+  const ch = String(name).trim()[0]
   return /[a-zA-Z]/.test(ch) ? ch.toUpperCase() : ch
 }
 
@@ -154,10 +155,10 @@ export async function renderNav() {
 
   if (user) {
     const profile = await getProfile(user.id)
-    const name = profile?.username || user.email
-    const wood = profile?.rolling_wood ?? 0
-    const isAdmin = profile?.role === 'admin'
-    const avatarUrl = profile?.avatar_url
+    const name = (profile && profile.username) || user.email
+    const wood = (profile && profile.rolling_wood != null) ? profile.rolling_wood : 0
+    const isAdmin = !!(profile && profile.role === 'admin')
+    const avatarUrl = profile && profile.avatar_url
 
     const avatarInner = avatarUrl
       ? `<img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(name)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
@@ -310,20 +311,21 @@ export async function loadStats() {
     const { data: newest } = await supabase.from('profiles').select('username')
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
 
-    set('stat-posts', postCount ?? 0)
-    set('stat-users', userCount ?? 0)
-    set('stat-today', todayCount ?? 0)
-    set('stat-yesterday', yestCount ?? 0)
-    set('stat-newest', newest?.username || '—')
-    set('board-count-posts', postCount ?? 0)
-    set('signin-count', (userCount ?? 0) + ' 人')
+    set('stat-posts', postCount == null ? 0 : postCount)
+    set('stat-users', userCount == null ? 0 : userCount)
+    set('stat-today', todayCount == null ? 0 : todayCount)
+    set('stat-yesterday', yestCount == null ? 0 : yestCount)
+    set('stat-newest', (newest && newest.username) || '—')
+    set('board-count-posts', postCount == null ? 0 : postCount)
+    set('signin-count', (userCount == null ? 0 : userCount) + ' 人')
   } catch (e) {
     console.warn('加载统计失败：', e)
   }
 }
 
 // ============ 帖子列表 ============
-export async function loadPosts(containerId, keyword = '') {
+export async function loadPosts(containerId, keyword) {
+  if (keyword == null) keyword = ''
   const container = document.getElementById(containerId)
   if (!container) return
 
@@ -341,7 +343,7 @@ export async function loadPosts(containerId, keyword = '') {
     container.innerHTML = `<div class="empty">加载失败：${escapeHtml(error.message)}</div>`
     return
   }
-  if (!data?.length) {
+  if (!data || !data.length) {
     container.innerHTML = keyword
       ? `<div class="empty">没有找到和「${escapeHtml(keyword)}」相关的帖子</div>`
       : `<div class="empty">
@@ -352,11 +354,11 @@ export async function loadPosts(containerId, keyword = '') {
   }
 
   container.innerHTML = data.map((p, i) => {
-    const username = p.profiles?.username || '匿名'
-    const avatarUrl = p.profiles?.avatar_url
-    const cCount = p.comments?.[0]?.count ?? 0
-    const lCount = p.likes?.[0]?.count ?? 0
-    const tCount = p.tips?.[0]?.count ?? 0
+    const username = (p.profiles && p.profiles.username) || '匿名'
+    const avatarUrl = p.profiles && p.profiles.avatar_url
+    const cCount = (p.comments && p.comments[0] && p.comments[0].count) || 0
+    const lCount = (p.likes && p.likes[0] && p.likes[0].count) || 0
+    const tCount = (p.tips && p.tips[0] && p.tips[0].count) || 0
     const majors = p.tags_major || []
     const minors = p.tags_minor || []
 
@@ -450,7 +452,8 @@ export function initSearch() {
 }
 
 // ============ 卡片光晕 ============
-export function bindCardGlow(root = document) {
+export function bindCardGlow(root) {
+  if (root == null) root = document
   root.querySelectorAll('.card').forEach(card => {
     card.addEventListener('mousemove', (e) => {
       const rect = card.getBoundingClientRect()
