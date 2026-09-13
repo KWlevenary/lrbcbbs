@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0e1a">
+<title>登录 · 老弱病残BBS</title>
+<link rel="stylesheet" href="assets/style.css">
+<script>
+  (function () {
+    try {
+      const saved = localStorage.getItem('theme')
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      document.documentElement.setAttribute('data-theme', saved || (prefersDark ? 'dark' : 'light'))
+    } catch (e) {}
+  })()
+</script>
+</head>
+<body>
+
+<header class="main-header">
+  <div class="header-inner">
+    <a href="index.html" class="brand nav-logo">
+      <span class="brand-name">老弱病残BBS</span>
+    </a>
+    <nav class="main-nav">
+      <a href="index.html">首页</a>
+      <a href="boards.html">全部帖子</a>
+      <a href="new.html">发帖</a>
+    </nav>
+    <div class="header-actions">
+      <button class="theme-toggle" id="theme-toggle" aria-label="切换主题">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+        </svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+      <span id="nav-right" class="nav-right"></span>
+    </div>
+  </div>
+</header>
+
+<div class="page" style="max-width:440px;padding-top:3rem;">
+
+  <!-- ============ 登录 / 注册 ============ -->
+  <div class="card auth-card" id="auth-card">
+    <div class="auth-head">
+      <h2 id="title">登录</h2>
+      <p class="auth-sub" id="subtitle">欢迎回来</p>
+    </div>
+
+    <div id="msg" class="msg" style="display:none;"></div>
+
+    <form id="form">
+      <div class="form-group" id="username-group" style="display:none;">
+        <label>用户名</label>
+        <input id="username" type="text" placeholder="用于显示的名字" maxlength="20" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label>邮箱</label>
+        <input id="email" type="email" required placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label>密码</label>
+        <input id="password" type="password" required placeholder="至少 6 位" minlength="6" autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-primary auth-submit" id="submit-btn">登录</button>
+    </form>
+
+    <p class="auth-switch">
+      <span id="switch-text">还没有账号？</span>
+      <a href="#" id="switch-mode">去注册</a>
+    </p>
+  </div>
+
+  <!-- ============ 邮箱验证提示 ============ -->
+  <div class="card auth-card auth-verify" id="verify-card" style="display:none;">
+    <div class="verify-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+        <polyline points="22,6 12,13 2,6"/>
+      </svg>
+      <div class="verify-pulse"></div>
+    </div>
+
+    <h2 class="verify-title">请查收邮件</h2>
+    <p class="verify-desc">
+      我们已向 <strong id="verify-email">你的邮箱</strong> 发送了一封验证邮件。<br>
+      点击邮件中的链接即可完成注册。
+    </p>
+
+    <div class="verify-tips">
+      <div class="verify-tip-item">
+        <span class="verify-tip-icon">📬</span>
+        <span>没收到？检查垃圾邮件文件夹</span>
+      </div>
+      <div class="verify-tip-item">
+        <span class="verify-tip-icon">⏱️</span>
+        <span>邮件可能需要 1-2 分钟到达</span>
+      </div>
+    </div>
+
+    <div class="verify-actions">
+      <button class="btn btn-primary" id="resend-btn" type="button">重新发送邮件</button>
+      <button class="btn btn-ghost" id="back-login-btn" type="button">返回登录</button>
+    </div>
+
+    <p class="verify-hint" id="resend-hint"></p>
+  </div>
+
+</div>
+
+<script type="module">
+import { supabase } from './assets/supabase.js'
+import { $, showMsg } from './assets/app.js'
+
+let mode = 'login'  // 'login' | 'signup'
+let pendingEmail = ''
+
+const authCard = $('#auth-card')
+const verifyCard = $('#verify-card')
+const titleEl = $('#title')
+const subtitleEl = $('#subtitle')
+const switchText = $('#switch-text')
+const switchMode = $('#switch-mode')
+const usernameGroup = $('#username-group')
+const submitBtn = $('#submit-btn')
+const msg = $('#msg')
+const form = $('#form')
+
+const redirect = new URLSearchParams(location.search).get('redirect') || 'index.html'
+
+// 已登录直接跳转
+const { data: { user } } = await supabase.auth.getUser()
+if (user) location.href = redirect
+
+// ============ 切换登录/注册 ============
+switchMode.onclick = (e) => {
+  e.preventDefault()
+  mode = mode === 'login' ? 'signup' : 'login'
+  const isSignup = mode === 'signup'
+  titleEl.textContent = isSignup ? '注册' : '登录'
+  subtitleEl.textContent = isSignup ? '创建一个新账号' : '欢迎回来'
+  submitBtn.textContent = isSignup ? '注册' : '登录'
+  switchText.textContent = isSignup ? '已有账号？' : '还没有账号？'
+  switchMode.textContent = isSignup ? '去登录' : '去注册'
+  usernameGroup.style.display = isSignup ? 'block' : 'none'
+  $('#password').setAttribute('autocomplete', isSignup ? 'new-password' : 'current-password')
+  msg.style.display = 'none'
+}
+
+// ============ 提交 ============
+form.onsubmit = async (e) => {
+  e.preventDefault()
+  submitBtn.disabled = true
+  const orig = submitBtn.textContent
+  submitBtn.textContent = '处理中…'
+
+  const email = $('#email').value.trim()
+  const password = $('#password').value
+
+  try {
+    if (mode === 'signup') {
+      const username = $('#username').value.trim() || 'user_' + Math.random().toString(36).slice(2, 8)
+      const { data, error } = await supabase.auth.signUp({
+        email, password,
+        options: {
+          data: { username },
+          emailRedirectTo: location.origin + location.pathname.replace('login.html', 'login.html') + '?redirect=' + encodeURIComponent(redirect)
+        }
+      })
+      if (error) throw error
+
+      // 判断是否需要邮箱验证
+      // 如果 session 为空，说明需要验证邮箱
+      if (data.session) {
+        // 不需要验证，直接登录成功
+        showMsg(msg, '注册成功，正在跳转…', 'success')
+        setTimeout(() => location.href = redirect, 800)
+      } else {
+        // 需要验证邮箱
+        pendingEmail = email
+        $('#verify-email').textContent = email
+        authCard.style.display = 'none'
+        verifyCard.style.display = 'block'
+        submitBtn.disabled = false
+        submitBtn.textContent = orig
+      }
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) throw error
+      showMsg(msg, '登录成功，正在跳转…', 'success')
+      setTimeout(() => location.href = redirect, 500)
+    }
+  } catch (err) {
+    let text = err.message || '操作失败'
+
+    // 常见错误翻译
+    if (text.includes('Email not confirmed')) {
+      text = '邮箱尚未验证，请到邮箱点击验证链接后再登录'
+    } else if (text.includes('Invalid login credentials')) {
+      text = '邮箱或密码错误'
+    } else if (text.includes('User already registered')) {
+      text = '该邮箱已注册，请直接登录'
+    } else if (text.includes('Password should be at least')) {
+      text = '密码至少 6 位'
+    }
+
+    showMsg(msg, text, 'error')
+    submitBtn.disabled = false
+    submitBtn.textContent = orig
+  }
+}
+
+// ============ 重新发送验证邮件 ============
+$('#resend-btn').onclick = async () => {
+  if (!pendingEmail) return
+  const btn = $('#resend-btn')
+  const hint = $('#resend-hint')
+  btn.disabled = true
+  btn.textContent = '发送中…'
+
+  try {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: pendingEmail,
+      options: {
+        emailRedirectTo: location.origin + location.pathname + '?redirect=' + encodeURIComponent(redirect)
+      }
+    })
+    if (error) throw error
+
+    hint.textContent = '✓ 邮件已重新发送，请查收'
+    hint.style.color = 'var(--primary-light)'
+  } catch (err) {
+    hint.textContent = '✗ ' + (err.message || '发送失败')
+    hint.style.color = '#f87171'
+  }
+
+  btn.disabled = false
+  btn.textContent = '重新发送邮件'
+  setTimeout(() => { hint.textContent = '' }, 5000)
+}
+
+// ============ 返回登录 ============
+$('#back-login-btn').onclick = () => {
+  verifyCard.style.display = 'none'
+  authCard.style.display = 'block'
+  mode = 'login'
+  titleEl.textContent = '登录'
+  subtitleEl.textContent = '欢迎回来'
+  submitBtn.textContent = '登录'
+  switchText.textContent = '还没有账号？'
+  switchMode.textContent = '去注册'
+  usernameGroup.style.display = 'none'
+  form.reset()
+  msg.style.display = 'none'
+}
+</script>
+</body>
+</html>

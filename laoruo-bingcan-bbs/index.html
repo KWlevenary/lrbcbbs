@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0e1a">
+<title>老弱病残BBS</title>
+<link rel="stylesheet" href="assets/style.css">
+<script>
+  (function () {
+    try {
+      const saved = localStorage.getItem('theme')
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      document.documentElement.setAttribute('data-theme', saved || (prefersDark ? 'dark' : 'light'))
+    } catch (e) {}
+  })()
+</script>
+</head>
+<body>
+
+<header class="main-header">
+  <div class="header-inner">
+    <!-- 移动端汉堡按钮 -->
+    <button class="mobile-menu-btn" id="mobile-menu-btn" type="button" aria-label="打开菜单">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+
+    <a href="index.html" class="brand nav-logo">
+      <span class="brand-name">老弱病残BBS</span>
+    </a>
+
+    <nav class="main-nav">
+      <a href="index.html" class="active">首页</a>
+      <a href="boards.html">全部帖子</a>
+      <a href="new.html">发帖</a>
+    </nav>
+
+    <div class="header-search">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input id="nav-search" type="text" placeholder="搜索帖子…" autocomplete="off">
+      <button id="search-clear" class="search-clear" type="button" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="header-actions">
+      <button class="theme-toggle" id="theme-toggle" aria-label="切换主题">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+        </svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+      <span id="nav-right" class="nav-right"></span>
+    </div>
+  </div>
+</header>
+
+<!-- ============ 移动端侧边栏 ============ -->
+<div class="mobile-sidebar-mask" id="mobile-sidebar-mask"></div>
+
+<aside class="mobile-sidebar" id="mobile-sidebar" aria-label="侧边栏">
+  <!-- 用户信息 -->
+  <div class="mobile-sidebar-head">
+    <div class="ms-avatar" id="ms-avatar">?</div>
+    <div class="ms-user-info">
+      <div class="ms-username" id="ms-username">未登录</div>
+      <div class="ms-wood" id="ms-wood" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="8" width="18" height="4" rx="2"/>
+          <path d="M5 12v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8"/>
+        </svg>
+        <span id="ms-wood-num">0</span> 个滚木
+      </div>
+    </div>
+    <button class="ms-close" id="ms-close" type="button" aria-label="关闭菜单">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- 侧边栏内容 -->
+  <div class="mobile-sidebar-body">
+
+    <!-- 公告 -->
+    <div class="ms-group-title">公告</div>
+    <div id="ms-announcements" class="ms-announcements">
+      <div style="text-align:center;padding:1rem;color:var(--text-muted);font-size:0.82rem;">加载中…</div>
+    </div>
+
+    <!-- 快捷操作 -->
+    <div class="ms-group-title">快捷</div>
+
+    <button class="ms-item ms-signin" id="ms-signin-btn" type="button">
+      <span class="ms-icon">📅</span>
+      <span class="ms-text">今日签到</span>
+      <span class="ms-hint" id="ms-signin-hint">+1 滚木</span>
+    </button>
+
+    <a href="new.html" class="ms-item">
+      <span class="ms-icon">✏️</span>
+      <span class="ms-text">发新帖</span>
+      <span class="ms-arrow">→</span>
+    </a>
+
+    <a href="boards.html" class="ms-item">
+      <span class="ms-icon">📚</span>
+      <span class="ms-text">全部帖子</span>
+      <span class="ms-arrow">→</span>
+    </a>
+
+    <!-- 用户面板 -->
+    <div class="ms-group-title">我的</div>
+
+    <a href="profile.html" class="ms-item">
+      <span class="ms-icon">👤</span>
+      <span class="ms-text">个人主页</span>
+      <span class="ms-arrow">→</span>
+    </a>
+
+    <a href="messages.html" class="ms-item">
+      <span class="ms-icon">🔔</span>
+      <span class="ms-text">消息通知</span>
+      <span class="ms-arrow">→</span>
+    </a>
+
+    <a href="admin.html" class="ms-item" id="ms-admin" style="display:none;">
+      <span class="ms-icon">🛡️</span>
+      <span class="ms-text">管理面板</span>
+      <span class="ms-arrow">→</span>
+    </a>
+
+    <!-- 设置 -->
+    <div class="ms-group-title">设置</div>
+
+    <button class="ms-item" id="ms-theme-btn" type="button">
+      <span class="ms-icon">🌙</span>
+      <span class="ms-text">色调调整</span>
+      <span class="ms-hint" id="ms-theme-hint">深色</span>
+    </button>
+
+    <!-- 底部：登录/退出 -->
+    <div class="ms-divider"></div>
+
+    <button class="ms-item ms-logout" id="ms-logout" type="button" style="display:none;">
+      <span class="ms-icon">🚪</span>
+      <span class="ms-text">退出登录</span>
+    </button>
+
+    <a href="login.html" class="ms-item ms-login" id="ms-login" style="display:none;">
+      <span class="ms-icon">🔑</span>
+      <span class="ms-text">登录 / 注册</span>
+      <span class="ms-arrow">→</span>
+    </a>
+
+  </div>
+</aside>
+
+<!-- ============ 页面主体 ============ -->
+<div class="page">
+
+  <!-- 统计 + 时钟（移动端隐藏） -->
+  <section class="stats-panel" id="stats">
+    <div class="stats-grid">
+      <div class="stat-ball">
+        <div class="ball-icon">今</div>
+        <div class="ball-num" id="stat-today">—</div>
+        <div class="ball-label">今日新帖</div>
+      </div>
+      <div class="stat-ball">
+        <div class="ball-icon">昨</div>
+        <div class="ball-num" id="stat-yesterday">—</div>
+        <div class="ball-label">昨日新帖</div>
+      </div>
+      <div class="stat-ball">
+        <div class="ball-icon">总</div>
+        <div class="ball-num" id="stat-posts">—</div>
+        <div class="ball-label">帖子总数</div>
+      </div>
+      <div class="stat-ball">
+        <div class="ball-icon">会</div>
+        <div class="ball-num" id="stat-users">—</div>
+        <div class="ball-label">会员总数</div>
+      </div>
+      <div class="stat-ball">
+        <div class="ball-icon">新</div>
+        <div class="ball-num" id="stat-newest">—</div>
+        <div class="ball-label">最新会员</div>
+      </div>
+    </div>
+
+    <div class="chart_sd y" id="clock-box">
+      <div id="clock_c">--:--:--</div>
+      <div class="cweek">
+        <strong><span id="cweek-jp">—</span></strong>
+        <i id="cweek-cn">(—)</i>
+        <em id="cweek-en">—</em>
+      </div>
+      <div id="date_c">----</div>
+    </div>
+  </section>
+
+  <!-- 三栏布局 -->
+  <div class="layout">
+
+    <!-- 左侧栏（移动端隐藏） -->
+    <aside class="col-side col-left">
+      <div class="card announcement-card">
+        <div class="card-title-bar">
+          <span>📢 公告</span>
+          <span class="announcement-count" id="announcement-count"></span>
+        </div>
+        <div class="announcement-list" id="announcement-list">
+          <div style="text-align:center;padding:1rem;color:var(--text-muted);font-size:0.85rem;">加载中…</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 主内容 -->
+    <main class="col-main">
+      <div class="page-section-head">
+        <h2>📂 板块导航</h2>
+        <span class="sub">选择一个板块浏览</span>
+      </div>
+
+      <div class="boards-home-grid" id="boards-home">
+        <div class="empty">加载中…</div>
+      </div>
+    </main>
+
+    <!-- 右侧栏（移动端隐藏） -->
+    <aside class="col-side col-right">
+      <div class="card signin-card">
+        <div class="signin-head">
+          <span>📅 签到</span>
+          <span class="signin-count" id="signin-count">— 人</span>
+        </div>
+        <button class="btn btn-primary signin-btn" id="signin-btn">今日签到</button>
+        <div class="signin-hint" id="signin-hint">每日签到得 1 个滚木</div>
+      </div>
+
+      <div class="card action-card">
+        <a href="new.html" class="action-btn primary">✏️ 发新帖</a>
+        <a href="boards.html" class="action-btn">🧭 全部帖子</a>
+      </div>
+
+      <div class="card info-card">
+        <div class="card-title-bar"><span>💡 关于</span></div>
+        <div class="info-list">
+          <div class="info-item"><span>框架</span><span>原生 HTML/JS</span></div>
+          <div class="info-item"><span>后端</span><span>Supabase</span></div>
+          <div class="info-item"><span>版本</span><span>v1.0</span></div>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+</div>
+
+<footer>
+  <p>© 2026 老弱病残BBS · 用爱发电</p>
+</footer>
+
+<script type="module">
+import { supabase } from './assets/supabase.js'
+import { renderNav, loadStats, escapeHtml, formatTime } from './assets/app.js'
+
+renderNav()
+loadStats()
+
+// ============================================================
+// 移动端侧边栏
+// ============================================================
+function initMobileSidebar() {
+  const btn = document.getElementById('mobile-menu-btn')
+  const sidebar = document.getElementById('mobile-sidebar')
+  const mask = document.getElementById('mobile-sidebar-mask')
+  const closeBtn = document.getElementById('ms-close')
+
+  if (!btn || !sidebar || !mask) return
+
+  const open = () => {
+    sidebar.classList.add('open')
+    mask.classList.add('open')
+    document.body.style.overflow = 'hidden'
+  }
+  const close = () => {
+    sidebar.classList.remove('open')
+    mask.classList.remove('open')
+    document.body.style.overflow = ''
+  }
+
+  btn.onclick = open
+  mask.onclick = close
+  if (closeBtn) closeBtn.onclick = close
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && sidebar.classList.contains('open')) close()
+  })
+}
+
+// 填充侧边栏用户信息
+async function fillSidebarUser() {
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const avatarEl = document.getElementById('ms-avatar')
+  const usernameEl = document.getElementById('ms-username')
+  const woodEl = document.getElementById('ms-wood')
+  const woodNumEl = document.getElementById('ms-wood-num')
+  const adminEl = document.getElementById('ms-admin')
+  const logoutEl = document.getElementById('ms-logout')
+  const loginEl = document.getElementById('ms-login')
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('username, role, rolling_wood, avatar_url')
+      .eq('id', user.id)
+      .single()
+
+    const name = profile?.username || user.email || '用户'
+
+    // 头像优先显示图片
+    if (avatarEl) {
+      if (profile?.avatar_url) {
+        avatarEl.innerHTML = `<img src="${escapeHtml(profile.avatar_url)}" alt="${escapeHtml(name)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+      } else {
+        avatarEl.textContent = name.trim()[0].toUpperCase()
+      }
+    }
+    if (usernameEl) usernameEl.textContent = name
+    if (woodEl) woodEl.style.display = 'inline-flex'
+    if (woodNumEl) woodNumEl.textContent = profile?.rolling_wood ?? 0
+    if (profile?.role === 'admin' && adminEl) adminEl.style.display = 'flex'
+    if (logoutEl) logoutEl.style.display = 'flex'
+    if (loginEl) loginEl.style.display = 'none'
+  } else {
+    if (avatarEl) avatarEl.textContent = '?'
+    if (usernameEl) usernameEl.textContent = '未登录'
+    if (woodEl) woodEl.style.display = 'none'
+    if (adminEl) adminEl.style.display = 'none'
+    if (logoutEl) logoutEl.style.display = 'none'
+    if (loginEl) loginEl.style.display = 'flex'
+  }
+}
+
+// 侧边栏主题切换
+function initSidebarTheme() {
+  const btn = document.getElementById('ms-theme-btn')
+  const hint = document.getElementById('ms-theme-hint')
+  if (!btn) return
+
+  const updateHint = () => {
+    const theme = document.documentElement.getAttribute('data-theme') || 'dark'
+    if (hint) hint.textContent = theme === 'dark' ? '深色' : '浅色'
+  }
+  updateHint()
+
+  btn.onclick = () => {
+    const html = document.documentElement
+    const current = html.getAttribute('data-theme') || 'dark'
+    const next = current === 'dark' ? 'light' : 'dark'
+
+    html.classList.add('theme-transitioning')
+    html.setAttribute('data-theme', next)
+    try { localStorage.setItem('theme', next) } catch (e) {}
+
+    updateHint()
+    setTimeout(() => html.classList.remove('theme-transitioning'), 600)
+  }
+}
+
+// 侧边栏签到
+async function initSidebarSignin() {
+  const btn = document.getElementById('ms-signin-btn')
+  const hint = document.getElementById('ms-signin-hint')
+  if (!btn) return
+
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    if (hint) hint.textContent = '需登录'
+    btn.onclick = () => location.href = 'login.html'
+    return
+  }
+
+  const today = new Date().toISOString().slice(0, 10)
+  const { data: checkin } = await supabase
+    .from('checkins')
+    .select('date')
+    .eq('user_id', user.id)
+    .eq('date', today)
+    .maybeSingle()
+
+  if (checkin) {
+    btn.disabled = true
+    btn.classList.add('signed')
+    if (hint) hint.textContent = '已签到 ✓'
+  }
+
+  btn.onclick = async () => {
+    if (btn.disabled) return
+    btn.disabled = true
+    if (hint) hint.textContent = '签到中…'
+
+    const { data, error } = await supabase.rpc('daily_checkin')
+
+    if (error || !data?.success) {
+      if (hint) hint.textContent = error?.message || data?.error || '失败'
+      btn.disabled = false
+      return
+    }
+
+    btn.classList.add('signed')
+    if (hint) hint.textContent = '+1 滚木 ✓'
+
+    const woodNum = document.getElementById('ms-wood-num')
+    if (woodNum) woodNum.textContent = Number(woodNum.textContent) + 1
+    const navWood = document.getElementById('nav-wood')
+    if (navWood) navWood.textContent = Number(navWood.textContent) + 1
+  }
+}
+
+// 侧边栏退出
+function initSidebarLogout() {
+  const btn = document.getElementById('ms-logout')
+  if (!btn) return
+  btn.onclick = async () => {
+    if (!confirm('确定退出登录？')) return
+    await supabase.auth.signOut()
+    location.href = 'index.html'
+  }
+}
+
+// ============================================================
+// 侧边栏公告
+// ============================================================
+async function loadSidebarAnnouncements() {
+  const box = document.getElementById('ms-announcements')
+  if (!box) return
+
+  const { data } = await supabase
+    .from('announcements')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(10)
+
+  if (!data?.length) {
+    box.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--text-muted);font-size:0.82rem;">暂无公告</div>'
+    return
+  }
+
+  box.innerHTML = data.map(a => `
+    <button class="ms-ann-item" data-ann-id="${a.id}" type="button">
+      <span class="ms-ann-dot"></span>
+      <span class="ms-ann-title">${escapeHtml(a.title)}</span>
+    </button>
+  `).join('')
+
+  box.querySelectorAll('.ms-ann-item').forEach(btn => {
+    btn.onclick = () => {
+      const id = Number(btn.dataset.annId)
+      const a = data.find(x => x.id === id)
+      if (a) openAnnouncementModal(a)
+    }
+  })
+}
+
+// ============================================================
+// 四大板块
+// ============================================================
+const BOARDS = [
+  { key: '游戏', icon: '🎮', desc: '游戏讨论、攻略、资源', color: 'linear-gradient(135deg, #a855f7, #ec4899)' },
+  { key: '工具', icon: '🔧', desc: '效率工具、脚本、插件', color: 'linear-gradient(135deg, #14b8a6, #22d3ee)' },
+  { key: '软件', icon: '💻', desc: '软件分享、教程、求助', color: 'linear-gradient(135deg, #6366f1, #8b5cf6)' },
+  { key: '其他', icon: '📦', desc: '杂谈、闲聊、生活', color: 'linear-gradient(135deg, #f59e0b, #ef4444)' }
+]
+
+async function loadBoards() {
+  const box = document.getElementById('boards-home')
+
+  const { data: allPosts } = await supabase
+    .from('posts')
+    .select('id, title, created_at, tags_major, profiles!author_id(username)')
+    .order('created_at', { ascending: false })
+
+  const grouped = {}
+  BOARDS.forEach(b => { grouped[b.key] = [] })
+  ;(allPosts || []).forEach(p => {
+    const majors = p.tags_major || []
+    for (const t of majors) {
+      if (grouped[t]) grouped[t].push(p)
+    }
+  })
+
+  box.innerHTML = BOARDS.map(b => {
+    const posts = grouped[b.key] || []
+    const preview = posts.slice(0, 3)
+
+    return `
+      <div class="board-home-card">
+        <a href="board.html?tag=${encodeURIComponent(b.key)}" class="board-home-link" aria-label="${escapeHtml(b.key)}"></a>
+
+        <div class="board-home-head">
+          <div class="board-home-icon" style="background:${b.color};">${b.icon}</div>
+          <div style="flex:1;min-width:0;">
+            <div class="board-home-name">${escapeHtml(b.key)}</div>
+            <div class="board-home-desc">${escapeHtml(b.desc)}</div>
+          </div>
+          <div class="board-home-count">
+            <span class="board-home-count-num">${posts.length}</span>
+            <span class="board-home-count-lbl">帖</span>
+          </div>
+        </div>
+
+        ${preview.length ? `
+          <div class="board-home-posts">
+            ${preview.map(p => `
+              <div class="board-home-post">
+                <span class="board-home-post-dot"></span>
+                <span class="board-home-post-title">${escapeHtml(p.title)}</span>
+                <span class="board-home-post-time">${formatTime(p.created_at)}</span>
+              </div>
+            `).join('')}
+            ${posts.length > 3 ? `<div class="board-home-more">还有 ${posts.length - 3} 篇 →</div>` : ''}
+          </div>
+        ` : `
+          <div class="board-home-empty">暂无帖子</div>
+        `}
+
+        <div class="board-home-foot">
+          <span>进入板块</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+            <polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </div>
+      </div>
+    `
+  }).join('')
+}
+
+// ============================================================
+// 桌面端公告（左侧栏）
+// ============================================================
+const annList = document.getElementById('announcement-list')
+const annCount = document.getElementById('announcement-count')
+
+async function loadAnnouncements() {
+  const { data: announcements } = await supabase
+    .from('announcements')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (annCount) annCount.textContent = `${announcements?.length || 0} 条`
+
+  if (!announcements?.length) {
+    if (annList) annList.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--text-muted);font-size:0.85rem;">暂无公告</div>'
+    return
+  }
+
+  if (annList) {
+    annList.innerHTML = announcements.map(a => `
+      <div class="announcement-item" data-ann-id="${a.id}">
+        <div class="announcement-icon">📌</div>
+        <div class="announcement-title">${escapeHtml(a.title)}</div>
+        <svg class="announcement-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </div>
+    `).join('')
+
+    annList.querySelectorAll('.announcement-item').forEach(el => {
+      el.onclick = () => {
+        const id = Number(el.dataset.annId)
+        const a = announcements.find(x => x.id === id)
+        if (a) openAnnouncementModal(a)
+      }
+    })
+  }
+}
+
+function openAnnouncementModal(a) {
+  const mask = document.createElement('div')
+  mask.className = 'announcement-modal-mask'
+  const html = escapeHtml(a.content)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>')
+
+  mask.innerHTML = `
+    <div class="announcement-modal">
+      <div class="announcement-modal-head">
+        <div>
+          <div class="announcement-modal-label">📢 公告</div>
+          <h2 class="announcement-modal-title">${escapeHtml(a.title)}</h2>
+          <div class="announcement-modal-date">发布于 ${formatTime(a.created_at)}</div>
+        </div>
+        <button class="announcement-modal-close" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="announcement-modal-body">${html}</div>
+      <div class="announcement-modal-foot">
+        <button class="btn btn-primary" type="button" id="ann-modal-ok">我知道了</button>
+      </div>
+    </div>
+  `
+  document.body.appendChild(mask)
+
+  const close = () => {
+    mask.style.animation = 'fadeOut 0.2s ease forwards'
+    setTimeout(() => mask.remove(), 200)
+  }
+  mask.querySelector('.announcement-modal-close').onclick = close
+  mask.querySelector('#ann-modal-ok').onclick = close
+  mask.onclick = (e) => { if (e.target === mask) close() }
+  const onEsc = (e) => {
+    if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onEsc) }
+  }
+  document.addEventListener('keydown', onEsc)
+}
+
+// ============================================================
+// 桌面端签到（右侧栏）
+// ============================================================
+const signinBtn = document.getElementById('signin-btn')
+const signinHint = document.getElementById('signin-hint')
+
+async function initDesktopSignin() {
+  if (!signinBtn) return
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (user) {
+    const today = new Date().toISOString().slice(0, 10)
+    const { data: checkin } = await supabase
+      .from('checkins').select('date')
+      .eq('user_id', user.id).eq('date', today).maybeSingle()
+
+    if (checkin) {
+      signinBtn.textContent = '✓ 已签到'
+      signinBtn.disabled = true
+      signinHint.textContent = '明天再来~'
+    }
+  }
+
+  signinBtn.onclick = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { location.href = 'login.html?redirect=index.html'; return }
+    signinBtn.disabled = true
+    signinBtn.textContent = '签到中…'
+
+    const { data, error } = await supabase.rpc('daily_checkin')
+
+    if (error || !data?.success) {
+      signinHint.textContent = error?.message || data?.error || '签到失败'
+      signinBtn.disabled = false
+      signinBtn.textContent = '今日签到'
+      return
+    }
+
+    signinBtn.textContent = '✓ 已签到'
+    signinHint.textContent = '签到成功！+1 滚木'
+    const navWood = document.getElementById('nav-wood')
+    if (navWood) navWood.textContent = Number(navWood.textContent) + 1
+  }
+}
+
+// ============================================================
+// 初始化
+// ============================================================
+initMobileSidebar()
+fillSidebarUser()
+initSidebarTheme()
+initSidebarSignin()
+initSidebarLogout()
+loadSidebarAnnouncements()
+loadBoards()
+loadAnnouncements()
+initDesktopSignin()
+</script>
+</body>
+</html>
