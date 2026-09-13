@@ -115,26 +115,29 @@ const filterBox = document.getElementById('board-filter')
 async function loadBadgeCounts() {
   const { data } = await supabase.from('posts').select('tags_major')
   const counts = { '': 0, '游戏': 0, '工具': 0, '软件': 0, '其他': 0 }
-  ;(data || []).forEach(p => {
+  ;(data || []).forEach(function (p) {
     counts['']++
-    for (const t of (p.tags_major || [])) {
+    const majors = p.tags_major || []
+    for (let i = 0; i < majors.length; i++) {
+      const t = majors[i]
       if (counts[t] !== undefined) counts[t]++
     }
   })
-  Object.entries(counts).forEach(([k, v]) => {
+  Object.keys(counts).forEach(function (k) {
     const el = document.getElementById('badge-' + (k || 'all'))
-    if (el) el.textContent = v
+    if (el) el.textContent = counts[k]
   })
 }
 
 // ============ 加载帖子（分页） ============
-async function loadPosts(tag = '', page = 1) {
+async function loadPosts(tag, page) {
+  if (tag == null) tag = ''
+  if (page == null) page = 1
   currentTag = tag
   currentPage = page
 
   postsBox.innerHTML = '<div class="empty">加载中…</div>'
 
-  // 1. 先查总数
   let countQuery = supabase
     .from('posts')
     .select('*', { count: 'exact', head: true })
@@ -142,31 +145,29 @@ async function loadPosts(tag = '', page = 1) {
   if (tag) countQuery = countQuery.contains('tags_major', [tag])
 
   const { count } = await countQuery
-  currentTotal = count ?? 0
+  currentTotal = count == null ? 0 : count
 
   const totalPages = Math.max(1, Math.ceil(currentTotal / PAGE_SIZE))
 
-  // 修正页码
   if (page < 1) page = 1
   if (page > totalPages) page = totalPages
   currentPage = page
 
   countSub.textContent = tag
-    ? `「${tag}」共 ${currentTotal} 篇`
-    : `共 ${currentTotal} 篇帖子`
+    ? '「' + tag + '」共 ' + currentTotal + ' 篇'
+    : '共 ' + currentTotal + ' 篇帖子'
 
   if (!currentTotal) {
     postsBox.innerHTML = `
       <div class="empty">
         <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        <div>${tag ? `「${escapeHtml(tag)}」板块还没有帖子` : '还没有帖子'}，<a href="new.html">来发第一帖</a>吧</div>
+        <div>${tag ? '「' + escapeHtml(tag) + '」板块还没有帖子' : '还没有帖子'}，<a href="new.html">来发第一帖</a>吧</div>
       </div>
     `
     paginationBox.innerHTML = ''
     return
   }
 
-  // 2. 分页查询
   const from = (page - 1) * PAGE_SIZE
   const to = from + PAGE_SIZE - 1
 
@@ -181,15 +182,15 @@ async function loadPosts(tag = '', page = 1) {
   const { data, error } = await query
 
   if (error) {
-    postsBox.innerHTML = `<div class="empty">加载失败：${escapeHtml(error.message)}</div>`
+    postsBox.innerHTML = '<div class="empty">加载失败：' + escapeHtml(error.message) + '</div>'
     return
   }
 
-  postsBox.innerHTML = data.map((p, i) => {
-    const username = p.profiles?.username || '匿名'
-    const cCount = p.comments?.[0]?.count ?? 0
-    const lCount = p.likes?.[0]?.count ?? 0
-    const tCount = p.tips?.[0]?.count ?? 0
+  postsBox.innerHTML = (data || []).map(function (p, i) {
+    const username = (p.profiles && p.profiles.username) || '匿名'
+    const cCount = (p.comments && p.comments[0] && p.comments[0].count) || 0
+    const lCount = (p.likes && p.likes[0] && p.likes[0].count) || 0
+    const tCount = (p.tips && p.tips[0] && p.tips[0].count) || 0
     const majors = p.tags_major || []
     const minors = p.tags_minor || []
 
@@ -254,7 +255,7 @@ function renderPagination(totalPages) {
   }
 
   const parts = []
-  parts.push(`<button class="page-btn" data-page="prev" ${currentPage === 1 ? 'disabled' : ''}>← 上一页</button>`)
+  parts.push('<button class="page-btn" data-page="prev" ' + (currentPage === 1 ? 'disabled' : '') + '>← 上一页</button>')
 
   const pages = []
   const maxShow = 7
@@ -272,20 +273,20 @@ function renderPagination(totalPages) {
     pages.push(totalPages)
   }
 
-  pages.forEach(p => {
+  pages.forEach(function (p) {
     if (p === '…') {
-      parts.push(`<span class="page-ellipsis">…</span>`)
+      parts.push('<span class="page-ellipsis">…</span>')
     } else {
-      parts.push(`<button class="page-btn ${p === currentPage ? 'active' : ''}" data-page="${p}">${p}</button>`)
+      parts.push('<button class="page-btn ' + (p === currentPage ? 'active' : '') + '" data-page="' + p + '">' + p + '</button>')
     }
   })
 
-  parts.push(`<button class="page-btn" data-page="next" ${currentPage === totalPages ? 'disabled' : ''}>下一页 →</button>`)
+  parts.push('<button class="page-btn" data-page="next" ' + (currentPage === totalPages ? 'disabled' : '') + '>下一页 →</button>')
 
   paginationBox.innerHTML = parts.join('')
 
-  paginationBox.querySelectorAll('.page-btn').forEach(btn => {
-    btn.onclick = () => {
+  paginationBox.querySelectorAll('.page-btn').forEach(function (btn) {
+    btn.onclick = function () {
       const target = btn.dataset.page
       let newPage = currentPage
       if (target === 'prev') newPage = Math.max(1, currentPage - 1)
@@ -295,18 +296,17 @@ function renderPagination(totalPages) {
       if (newPage === currentPage) return
 
       loadPosts(currentTag, newPage)
-      // 滚到顶部
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   })
 }
 
 // ============ 板块筛选 ============
-filterBox.querySelectorAll('.filter-btn').forEach(btn => {
-  btn.onclick = () => {
-    filterBox.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'))
+filterBox.querySelectorAll('.filter-btn').forEach(function (btn) {
+  btn.onclick = function () {
+    filterBox.querySelectorAll('.filter-btn').forEach(function (b) { b.classList.remove('active') })
     btn.classList.add('active')
-    history.replaceState(null, '', btn.dataset.tag ? `?tag=${encodeURIComponent(btn.dataset.tag)}` : location.pathname)
+    history.replaceState(null, '', btn.dataset.tag ? '?tag=' + encodeURIComponent(btn.dataset.tag) : location.pathname)
     loadPosts(btn.dataset.tag, 1)
   }
 })
@@ -314,9 +314,9 @@ filterBox.querySelectorAll('.filter-btn').forEach(btn => {
 // ============ 初始化 ============
 const urlTag = new URLSearchParams(location.search).get('tag') || ''
 if (urlTag) {
-  const btn = filterBox.querySelector(`[data-tag="${urlTag}"]`)
+  const btn = filterBox.querySelector('[data-tag="' + urlTag + '"]')
   if (btn) {
-    filterBox.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'))
+    filterBox.querySelectorAll('.filter-btn').forEach(function (b) { b.classList.remove('active') })
     btn.classList.add('active')
   }
 }

@@ -64,7 +64,6 @@ renderNav()
 const user = await requireLogin()
 if (!user) throw new Error('redirecting')
 
-// ============ Tab 切换 ============
 const initialTab = new URLSearchParams(location.search).get('tab') || 'replies'
 $$('.profile-tab').forEach(btn => {
   if (btn.dataset.tab === initialTab) btn.classList.add('active')
@@ -73,45 +72,43 @@ $$('.profile-tab').forEach(btn => {
   btn.onclick = () => {
     $$('.profile-tab').forEach(b => b.classList.remove('active'))
     btn.classList.add('active')
-    history.replaceState(null, '', `?tab=${btn.dataset.tab}`)
+    history.replaceState(null, '', '?tab=' + btn.dataset.tab)
     loadTab(btn.dataset.tab)
   }
 })
 
-// ============ 工具：消息卡片 ============
-function messageCard({ href, avatarName, headerHtml, contentHtml, time }) {
+function messageCard(opts) {
+  const href = opts.href
+  const avatarName = opts.avatarName
+  const headerHtml = opts.headerHtml
+  const contentHtml = opts.contentHtml
+  const time = opts.time
   return `
     <a href="${href}" class="msg-card">
       <div class="msg-avatar">${escapeHtml(initial(avatarName))}</div>
       <div class="msg-body">
         <div class="msg-header">${headerHtml}</div>
-        ${contentHtml ? `<div class="msg-preview">${contentHtml}</div>` : ''}
+        ${contentHtml ? '<div class="msg-preview">' + contentHtml + '</div>' : ''}
       </div>
       <div class="msg-time">${formatTime(time)}</div>
     </a>
   `
 }
 
-// ============ Tab 1：收到的回复 ============
 async function loadReplies() {
   const box = $('#content')
   box.innerHTML = '<div class="empty">加载中…</div>'
 
-  // 1. 我发的帖子
   const { data: myPosts } = await supabase
     .from('posts').select('id, title').eq('author_id', user.id)
   const myPostIds = (myPosts || []).map(p => p.id)
   const postTitleMap = {}
   ;(myPosts || []).forEach(p => { postTitleMap[p.id] = p.title })
 
-  // 2. 我发的评论
   const { data: myComments } = await supabase
     .from('comments').select('id, post_id, content').eq('author_id', user.id)
   const myCommentIds = (myComments || []).map(c => c.id)
-  const commentContentMap = {}
-  ;(myComments || []).forEach(c => { commentContentMap[c.id] = c.content })
 
-  // 3. 别人评论我的帖子
   let postComments = []
   if (myPostIds.length) {
     const { data } = await supabase
@@ -125,7 +122,6 @@ async function loadReplies() {
     postComments = data || []
   }
 
-  // 4. 别人回复我的评论
   let commentReplies = []
   if (myCommentIds.length) {
     const { data } = await supabase
@@ -138,16 +134,14 @@ async function loadReplies() {
     commentReplies = data || []
   }
 
-  // 合并、去重、排序
-  const all = [
-    ...postComments.map(c => ({ ...c, _type: 'post' })),
-    ...commentReplies.map(c => ({ ...c, _type: 'comment' }))
-  ]
-  const seen = new Set()
+  const all = []
+    .concat(postComments.map(c => Object.assign({}, c, { _type: 'post' })))
+    .concat(commentReplies.map(c => Object.assign({}, c, { _type: 'comment' })))
+  const seen = {}
   const merged = []
   for (const c of all) {
-    if (seen.has(c.id)) continue
-    seen.add(c.id)
+    if (seen[c.id]) continue
+    seen[c.id] = true
     merged.push(c)
   }
   merged.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
@@ -163,16 +157,16 @@ async function loadReplies() {
   }
 
   box.innerHTML = merged.map(c => {
-    const cname = c.profiles?.username || '匿名'
+    const cname = (c.profiles && c.profiles.username) || '匿名'
     const postTitle = postTitleMap[c.post_id] || '一个帖子'
 
     let header, link
     if (c._type === 'post') {
-      header = `<strong>${escapeHtml(cname)}</strong> 评论了你的帖子 <span class="msg-target">「${escapeHtml(postTitle)}」</span>`
-      link = `post.html?id=${c.post_id}`
+      header = '<strong>' + escapeHtml(cname) + '</strong> 评论了你的帖子 <span class="msg-target">「' + escapeHtml(postTitle) + '」</span>'
+      link = 'post.html?id=' + c.post_id
     } else {
-      header = `<strong>${escapeHtml(cname)}</strong> 回复了你在 <span class="msg-target">「${escapeHtml(postTitle)}」</span> 中的评论`
-      link = `post.html?id=${c.post_id}#comment-${c.id}`
+      header = '<strong>' + escapeHtml(cname) + '</strong> 回复了你在 <span class="msg-target">「' + escapeHtml(postTitle) + '」</span> 中的评论'
+      link = 'post.html?id=' + c.post_id + '#comment-' + c.id
     }
 
     return messageCard({
@@ -185,12 +179,10 @@ async function loadReplies() {
   }).join('')
 }
 
-// ============ Tab 2：收到的赞 ============
 async function loadLikes() {
   const box = $('#content')
   box.innerHTML = '<div class="empty">加载中…</div>'
 
-  // 我的帖子
   const { data: myPosts } = await supabase
     .from('posts').select('id, title').eq('author_id', user.id)
   const myPostIds = (myPosts || []).map(p => p.id)
@@ -214,14 +206,14 @@ async function loadLikes() {
     .limit(100)
 
   if (error) {
-    box.innerHTML = `<div class="empty">加载失败：${escapeHtml(error.message)}</div>`
+    box.innerHTML = '<div class="empty">加载失败：' + escapeHtml(error.message) + '</div>'
     return
   }
 
   const postTitleMap = {}
   ;(myPosts || []).forEach(p => { postTitleMap[p.id] = p.title })
 
-  if (!data?.length) {
+  if (!data || !data.length) {
     box.innerHTML = `
       <div class="empty">
         <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
@@ -232,20 +224,19 @@ async function loadLikes() {
   }
 
   box.innerHTML = data.map(lk => {
-    const lname = lk.profiles?.username || '匿名'
+    const lname = (lk.profiles && lk.profiles.username) || '匿名'
     const postTitle = postTitleMap[lk.post_id] || '你的帖子'
 
     return messageCard({
-      href: `post.html?id=${lk.post_id}`,
+      href: 'post.html?id=' + lk.post_id,
       avatarName: lname,
-      headerHtml: `<strong>${escapeHtml(lname)}</strong> 赞了你的帖子 <span class="msg-target">「${escapeHtml(postTitle)}」</span>`,
+      headerHtml: '<strong>' + escapeHtml(lname) + '</strong> 赞了你的帖子 <span class="msg-target">「' + escapeHtml(postTitle) + '」</span>',
       contentHtml: '',
       time: lk.created_at
     })
   }).join('')
 }
 
-// ============ 加载 Tab ============
 async function loadTab(t) {
   if (t === 'replies') await loadReplies()
   else if (t === 'likes') await loadLikes()

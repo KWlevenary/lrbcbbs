@@ -63,16 +63,14 @@
 
 <script type="module">
 import { supabase } from './assets/supabase.js'
-import {
-  $, escapeHtml, formatTime, renderNav, getUser, bindCardGlow, initial
-} from './assets/app.js'
+import { $, escapeHtml, formatTime, renderNav, getUser, bindCardGlow, initial } from './assets/app.js'
 import { marked } from './assets/lib/marked.js'
 import DOMPurify from './assets/lib/purify.js'
 
 marked.setOptions({ breaks: true, gfm: true })
 
 function esc(s) {
-  return String(s ?? '')
+  return String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 }
@@ -89,28 +87,28 @@ function renderMd(text) {
         title: title.trim(),
         desc: desc.trim(),
         icon: icon.trim(),
-        color: ['blue','green','purple','orange','red','cyan'].includes(color.trim()) ? color.trim() : 'blue'
+        color: ['blue','green','purple','orange','red','cyan'].indexOf(color.trim()) !== -1 ? color.trim() : 'blue'
       })
-      return `%%CARD_${idx}%%`
+      return '%%CARD_' + idx + '%%'
     })
 
   let html = DOMPurify.sanitize(marked.parse(text), {
     ADD_ATTR: ['target', 'rel']
   })
 
-  const buildCard = (c) => `<a class="link-card link-card-${c.color}" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer nofollow">
-    <div class="link-card-icon">${esc(c.icon)}</div>
-    <div class="link-card-body">
-      <div class="link-card-title">${esc(c.title)}</div>
-      ${c.desc ? `<div class="link-card-desc">${esc(c.desc)}</div>` : ''}
-    </div>
-    <div class="link-card-arrow">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="5" y1="12" x2="19" y2="12"/>
-        <polyline points="12 5 19 12 12 19"/>
-      </svg>
-    </div>
-  </a>`
+  const buildCard = (c) => '<a class="link-card link-card-' + c.color + '" href="' + esc(c.url) + '" target="_blank" rel="noopener noreferrer nofollow">' +
+    '<div class="link-card-icon">' + esc(c.icon) + '</div>' +
+    '<div class="link-card-body">' +
+      '<div class="link-card-title">' + esc(c.title) + '</div>' +
+      (c.desc ? '<div class="link-card-desc">' + esc(c.desc) + '</div>' : '') +
+    '</div>' +
+    '<div class="link-card-arrow">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+        '<line x1="5" y1="12" x2="19" y2="12"/>' +
+        '<polyline points="12 5 19 12 12 19"/>' +
+      '</svg>' +
+    '</div>' +
+  '</a>'
 
   html = html.replace(/<p>\s*%%CARD_(\d+)%%\s*<\/p>/g, (m, idx) => buildCard(cards[Number(idx)]) || '')
   html = html.replace(/%%CARD_(\d+)%%/g, (m, idx) => buildCard(cards[Number(idx)]) || '')
@@ -118,11 +116,12 @@ function renderMd(text) {
   return html
 }
 
-function avatarLink(authorId, name, avatarUrl, size = 30) {
+function avatarLink(authorId, name, avatarUrl, size) {
+  if (size == null) size = 30
   const inner = avatarUrl
-    ? `<img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(name)}" class="avatar avatar-img" style="width:${size}px;height:${size}px;">`
-    : `<div class="avatar" style="width:${size}px;height:${size}px;font-size:${Math.max(11, Math.round(size * 0.4))}px;">${escapeHtml(initial(name))}</div>`
-  return `<a href="profile.html?id=${encodeURIComponent(authorId)}" class="avatar-link" onclick="event.stopPropagation();">${inner}</a>`
+    ? '<img src="' + escapeHtml(avatarUrl) + '" alt="' + escapeHtml(name) + '" class="avatar avatar-img" style="width:' + size + 'px;height:' + size + 'px;">'
+    : '<div class="avatar" style="width:' + size + 'px;height:' + size + 'px;font-size:' + Math.max(11, Math.round(size * 0.4)) + 'px;">' + escapeHtml(initial(name)) + '</div>'
+  return '<a href="profile.html?id=' + encodeURIComponent(authorId) + '" class="avatar-link" onclick="event.stopPropagation();">' + inner + '</a>'
 }
 
 renderNav()
@@ -146,12 +145,14 @@ if (error || !post) {
   throw error
 }
 
-const meProfile = user
-  ? (await supabase.from('profiles').select('role, rolling_wood').eq('id', user.id).single()).data
-  : null
-const isAdmin = meProfile?.role === 'admin'
-const authorName = post.profiles?.username || '匿名'
-const authorAvatar = post.profiles?.avatar_url
+let meProfile = null
+if (user) {
+  const { data: p } = await supabase.from('profiles').select('role, rolling_wood').eq('id', user.id).single()
+  meProfile = p
+}
+const isAdmin = meProfile && meProfile.role === 'admin'
+const authorName = (post.profiles && post.profiles.username) || '匿名'
+const authorAvatar = post.profiles && post.profiles.avatar_url
 const isPostAuthor = user && user.id === post.author_id
 const canDeletePost = user && (isPostAuthor || isAdmin)
 
@@ -165,7 +166,7 @@ if (user) {
     .eq('post_id', id).eq('user_id', user.id).maybeSingle()
   liked = !!lk
 }
-let currentLikes = likeCount ?? 0
+let currentLikes = likeCount == null ? 0 : likeCount
 
 const { data: tipSum } = await supabase
   .from('tips').select('amount').eq('post_id', id)
@@ -193,8 +194,8 @@ $('#main').innerHTML = `
 
     ${(majors.length || minors.length) ? `
       <div class="post-tags" style="margin-top:0.5rem;">
-        ${majors.map(t => `<a href="board.html?tag=${encodeURIComponent(t)}" class="tag-major">${escapeHtml(t)}</a>`).join('')}
-        ${minors.map(t => `<a href="search.html?tag=${encodeURIComponent(t)}&type=minor" class="tag-minor">${escapeHtml(t)}</a>`).join('')}
+        ${majors.map(t => '<a href="board.html?tag=' + encodeURIComponent(t) + '" class="tag-major">' + escapeHtml(t) + '</a>').join('')}
+        ${minors.map(t => '<a href="search.html?tag=' + encodeURIComponent(t) + '&type=minor" class="tag-minor">' + escapeHtml(t) + '</a>').join('')}
       </div>
     ` : ''}
 
@@ -264,21 +265,10 @@ bindCardGlow($('#main'))
 document.querySelectorAll('.post-content img').forEach(img => {
   img.onclick = () => {
     const overlay = document.createElement('div')
-    overlay.style.cssText = `
-      position:fixed;inset:0;z-index:9999;
-      background:rgba(0,0,0,0.88);
-      display:flex;align-items:center;justify-content:center;
-      cursor:zoom-out;padding:2rem;
-      animation:imgFadeIn 0.25s ease;
-    `
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;cursor:zoom-out;padding:2rem;animation:imgFadeIn 0.25s ease;'
     const big = document.createElement('img')
     big.src = img.src
-    big.style.cssText = `
-      max-width:95vw;max-height:95vh;
-      border-radius:12px;
-      box-shadow:0 30px 80px rgba(0,0,0,0.7);
-      animation:imgZoomIn 0.3s cubic-bezier(0.16,1,0.3,1);
-    `
+    big.style.cssText = 'max-width:95vw;max-height:95vh;border-radius:12px;box-shadow:0 30px 80px rgba(0,0,0,0.7);animation:imgZoomIn 0.3s cubic-bezier(0.16,1,0.3,1);'
     overlay.appendChild(big)
     overlay.onclick = () => overlay.remove()
     document.body.appendChild(overlay)
@@ -294,10 +284,7 @@ document.querySelectorAll('.post-content img').forEach(img => {
     if (!document.getElementById('img-zoom-style')) {
       const style = document.createElement('style')
       style.id = 'img-zoom-style'
-      style.textContent = `
-        @keyframes imgFadeIn { from{opacity:0} to{opacity:1} }
-        @keyframes imgZoomIn { from{opacity:0;transform:scale(0.9)} to{opacity:1;transform:scale(1)} }
-      `
+      style.textContent = '@keyframes imgFadeIn{from{opacity:0}to{opacity:1}}@keyframes imgZoomIn{from{opacity:0;transform:scale(0.9)}to{opacity:1;transform:scale(1)}}'
       document.head.appendChild(style)
     }
   }
@@ -307,7 +294,7 @@ const likeBtn = document.getElementById('like-btn')
 const likeCountEl = document.getElementById('like-count')
 
 likeBtn.onclick = async () => {
-  if (!user) { location.href = `login.html?redirect=${redirectParam}`; return }
+  if (!user) { location.href = 'login.html?redirect=' + redirectParam; return }
   likeBtn.disabled = true
 
   if (liked) {
@@ -327,10 +314,10 @@ likeBtn.onclick = async () => {
 const tipBtn = document.getElementById('tip-btn')
 
 tipBtn.onclick = () => {
-  if (!user) { location.href = `login.html?redirect=${redirectParam}`; return }
+  if (!user) { location.href = 'login.html?redirect=' + redirectParam; return }
   if (user.id === post.author_id) { alert('不能给自己赞赏'); return }
   supabase.from('profiles').select('rolling_wood').eq('id', user.id).single()
-    .then(({ data }) => openTipModal(data?.rolling_wood ?? 0))
+    .then(({ data }) => openTipModal((data && data.rolling_wood != null) ? data.rolling_wood : 0))
 }
 
 function openTipModal(balance) {
@@ -394,8 +381,8 @@ function openTipModal(balance) {
 
     const { data, error } = await supabase.rpc('tip_post', { p_post_id: Number(id), p_amount: amount })
 
-    if (error || !data?.success) {
-      alert(error?.message || data?.error || '赞赏失败')
+    if (error || !data || !data.success) {
+      alert((error && error.message) || (data && data.error) || '赞赏失败')
       btn.disabled = false
       btn.textContent = '确认赞赏'
       return
@@ -418,7 +405,7 @@ if (delBtn) {
   delBtn.onclick = async () => {
     const isAdminDelete = isAdmin && !isPostAuthor
     const confirmMsg = isAdminDelete
-      ? `【管理员操作】确定删除「${post.title}」？此操作不可恢复`
+      ? '【管理员操作】确定删除「' + post.title + '」？此操作不可恢复'
       : '确定删除？此操作不可恢复'
     if (!confirm(confirmMsg)) return
 
@@ -436,12 +423,13 @@ if (delBtn) {
   }
 }
 
-function renderComment(c, isReply = false) {
+function renderComment(c, isReply) {
+  if (isReply == null) isReply = false
   const ownComment = user && user.id === c.author_id
   const canDel = user && (ownComment || isAdmin)
   const isAdminDelete = isAdmin && !ownComment
-  const cname = c.profiles?.username || '匿名'
-  const cavatar = c.profiles?.avatar_url
+  const cname = (c.profiles && c.profiles.username) || '匿名'
+  const cavatar = c.profiles && c.profiles.avatar_url
   const replies = c._replies || []
 
   return `
@@ -453,7 +441,7 @@ function renderComment(c, isReply = false) {
           <span style="color:var(--text-muted);">· ${formatTime(c.created_at)}</span>
         </div>
         <div style="display:flex;gap:0.4rem;align-items:center;">
-          ${user ? `<button class="btn btn-ghost btn-sm" data-reply="${c.id}">回复</button>` : ''}
+          ${user ? '<button class="btn btn-ghost btn-sm" data-reply="' + c.id + '">回复</button>' : ''}
           ${canDel ? `
             <button class="btn btn-ghost btn-sm${isAdminDelete ? ' admin-del' : ''}" data-del-comment="${c.id}">
               ${isAdminDelete ? '管理员删除' : '删除'}
@@ -481,11 +469,11 @@ async function loadComments() {
     .order('created_at', { ascending: true })
 
   if (error) {
-    box.innerHTML = `<div class="empty">加载失败：${escapeHtml(error.message)}</div>`
+    box.innerHTML = '<div class="empty">加载失败：' + escapeHtml(error.message) + '</div>'
     return
   }
-  if (!data?.length) {
-    box.innerHTML = `<div class="empty">还没有评论，来抢沙发</div>`
+  if (!data || !data.length) {
+    box.innerHTML = '<div class="empty">还没有评论，来抢沙发</div>'
     const cc = document.getElementById('comment-count')
     if (cc) cc.textContent = ''
     return
@@ -500,7 +488,7 @@ async function loadComments() {
   })
 
   const cc = document.getElementById('comment-count')
-  if (cc) cc.textContent = `(${data.length})`
+  if (cc) cc.textContent = '(' + data.length + ')'
 
   box.innerHTML = roots.map(c => renderComment(c, false)).join('')
 
@@ -533,7 +521,7 @@ async function loadComments() {
   box.querySelectorAll('[data-reply]').forEach(btn => {
     btn.onclick = () => {
       const cid = btn.dataset.reply
-      const slot = box.querySelector(`[data-slot="${cid}"]`)
+      const slot = box.querySelector('[data-slot="' + cid + '"]')
       if (!slot) return
       if (slot.innerHTML.trim()) { slot.innerHTML = ''; return }
 

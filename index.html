@@ -68,7 +68,6 @@
   </div>
 </header>
 
-<!-- ============ 移动端顶部板块导航（必须紧跟在 </header> 后面） ============ -->
 <div class="mobile-top-nav" id="mobile-top-nav">
   <a href="boards.html?tag=游戏">游戏</a>
   <a href="boards.html?tag=工具">工具</a>
@@ -77,7 +76,6 @@
   <button class="mobile-signin-btn" id="mobile-signin-btn" type="button">📅 签到</button>
 </div>
 
-<!-- ============ 移动端侧边栏 ============ -->
 <div class="mobile-sidebar-mask" id="mobile-sidebar-mask"></div>
 
 <aside class="mobile-sidebar" id="mobile-sidebar" aria-label="侧边栏">
@@ -161,9 +159,7 @@
   </div>
 </aside>
 
-<!-- ============ 页面主体 ============ -->
 <div class="page">
-
   <section class="stats-panel" id="stats">
     <div class="stats-grid">
       <div class="stat-ball">
@@ -253,14 +249,12 @@
       </div>
     </aside>
   </div>
-
 </div>
 
 <footer>
   <p>© 2026 老弱病残BBS · 用爱发电</p>
 </footer>
 
-<!-- ============ 移动端底部导航栏 ============ -->
 <div class="mobile-bottom-bar">
   <a href="index.html" class="mb-item active">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -351,10 +345,10 @@ async function fillSidebarUser() {
       .eq('id', user.id)
       .single()
 
-    const name = profile?.username || user.email || '用户'
+    const name = (profile && profile.username) || user.email || '用户'
 
     if (avatarEl) {
-      if (profile?.avatar_url) {
+      if (profile && profile.avatar_url) {
         avatarEl.innerHTML = `<img src="${escapeHtml(profile.avatar_url)}" alt="${escapeHtml(name)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
       } else {
         avatarEl.textContent = name.trim()[0].toUpperCase()
@@ -362,8 +356,8 @@ async function fillSidebarUser() {
     }
     if (usernameEl) usernameEl.textContent = name
     if (woodEl) woodEl.style.display = 'inline-flex'
-    if (woodNumEl) woodNumEl.textContent = profile?.rolling_wood ?? 0
-    if (profile?.role === 'admin' && adminEl) adminEl.style.display = 'flex'
+    if (woodNumEl) woodNumEl.textContent = (profile && profile.rolling_wood != null) ? profile.rolling_wood : 0
+    if (profile && profile.role === 'admin' && adminEl) adminEl.style.display = 'flex'
     if (logoutEl) logoutEl.style.display = 'flex'
     if (loginEl) loginEl.style.display = 'none'
   } else {
@@ -435,8 +429,8 @@ async function initSidebarSignin() {
 
     const { data, error } = await supabase.rpc('daily_checkin')
 
-    if (error || !data?.success) {
-      if (hint) hint.textContent = error?.message || data?.error || '失败'
+    if (error || !data || !data.success) {
+      if (hint) hint.textContent = (error && error.message) || (data && data.error) || '失败'
       btn.disabled = false
       return
     }
@@ -461,9 +455,6 @@ function initSidebarLogout() {
   }
 }
 
-// ============================================================
-// 侧边栏公告
-// ============================================================
 async function loadSidebarAnnouncements() {
   const box = document.getElementById('ms-announcements')
   if (!box) return
@@ -474,7 +465,7 @@ async function loadSidebarAnnouncements() {
     .order('created_at', { ascending: false })
     .limit(10)
 
-  if (!data?.length) {
+  if (!data || !data.length) {
     box.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--text-muted);font-size:0.82rem;">暂无公告</div>'
     return
   }
@@ -495,9 +486,6 @@ async function loadSidebarAnnouncements() {
   })
 }
 
-// ============================================================
-// 四大板块
-// ============================================================
 const BOARDS = [
   { key: '游戏', icon: '🎮', desc: '游戏讨论、攻略、资源', color: 'linear-gradient(135deg, #a855f7, #ec4899)' },
   { key: '工具', icon: '🔧', desc: '效率工具、脚本、插件', color: 'linear-gradient(135deg, #14b8a6, #22d3ee)' },
@@ -507,11 +495,17 @@ const BOARDS = [
 
 async function loadBoards() {
   const box = document.getElementById('boards-home')
+  if (!box) return
 
-  const { data: allPosts } = await supabase
+  const { data: allPosts, error } = await supabase
     .from('posts')
     .select('id, title, created_at, tags_major, profiles!author_id(username)')
     .order('created_at', { ascending: false })
+
+  if (error) {
+    box.innerHTML = `<div class="empty">加载失败：${escapeHtml(error.message)}</div>`
+    return
+  }
 
   const grouped = {}
   BOARDS.forEach(b => { grouped[b.key] = [] })
@@ -569,9 +563,6 @@ async function loadBoards() {
   }).join('')
 }
 
-// ============================================================
-// 桌面端公告（左侧栏）
-// ============================================================
 const annList = document.getElementById('announcement-list')
 const annCount = document.getElementById('announcement-count')
 
@@ -581,9 +572,9 @@ async function loadAnnouncements() {
     .select('*')
     .order('created_at', { ascending: false })
 
-  if (annCount) annCount.textContent = `${announcements?.length || 0} 条`
+  if (annCount) annCount.textContent = ((announcements && announcements.length) || 0) + ' 条'
 
-  if (!announcements?.length) {
+  if (!announcements || !announcements.length) {
     if (annList) annList.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--text-muted);font-size:0.85rem;">暂无公告</div>'
     return
   }
@@ -652,9 +643,6 @@ function openAnnouncementModal(a) {
   document.addEventListener('keydown', onEsc)
 }
 
-// ============================================================
-// 签到（桌面端 + 移动端同时绑定）
-// ============================================================
 async function initSignin() {
   const desktopBtn = document.getElementById('signin-btn')
   const desktopHint = document.getElementById('signin-hint')
@@ -697,8 +685,8 @@ async function initSignin() {
 
     const { data, error } = await supabase.rpc('daily_checkin')
 
-    if (error || !data?.success) {
-      const errMsg = error?.message || data?.error || '签到失败'
+    if (error || !data || !data.success) {
+      const errMsg = (error && error.message) || (data && data.error) || '签到失败'
       if (desktopHint) desktopHint.textContent = errMsg
       if (desktopBtn) { desktopBtn.disabled = false; desktopBtn.textContent = '今日签到' }
       if (mobileBtn) { mobileBtn.disabled = false; mobileBtn.textContent = '📅 签到' }
@@ -718,9 +706,6 @@ async function initSignin() {
   if (mobileBtn) mobileBtn.onclick = handleSignin
 }
 
-// ============================================================
-// 初始化
-// ============================================================
 initMobileSidebar()
 fillSidebarUser()
 initSidebarTheme()

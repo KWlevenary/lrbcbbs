@@ -92,19 +92,18 @@ let currentTotal = 0
 // ============ 页面头 ============
 async function renderHeader() {
   if (!board) {
-    headerEl.innerHTML = `<h1>未知板块</h1>`
-    postsBox.innerHTML = `<div class="empty">板块「${escapeHtml(tag)}」不存在，<a href="index.html">返回首页</a></div>`
+    headerEl.innerHTML = '<h1>未知板块</h1>'
+    postsBox.innerHTML = '<div class="empty">板块「' + escapeHtml(tag) + '」不存在，<a href="index.html">返回首页</a></div>'
     paginationBox.innerHTML = ''
     return false
   }
 
-  // 查板块帖子总数
   const { count } = await supabase
     .from('posts')
     .select('*', { count: 'exact', head: true })
     .contains('tags_major', [tag])
 
-  currentTotal = count ?? 0
+  currentTotal = count == null ? 0 : count
 
   headerEl.innerHTML = `
     <div class="board-detail-head">
@@ -120,7 +119,8 @@ async function renderHeader() {
 }
 
 // ============ 加载帖子（分页） ============
-async function loadPosts(page = 1) {
+async function loadPosts(page) {
+  if (page == null) page = 1
   const totalPages = Math.max(1, Math.ceil(currentTotal / PAGE_SIZE))
 
   if (page < 1) page = 1
@@ -151,15 +151,15 @@ async function loadPosts(page = 1) {
     .range(from, to)
 
   if (error) {
-    postsBox.innerHTML = `<div class="empty">加载失败：${escapeHtml(error.message)}</div>`
+    postsBox.innerHTML = '<div class="empty">加载失败：' + escapeHtml(error.message) + '</div>'
     return
   }
 
-  postsBox.innerHTML = data.map((p, i) => {
-    const username = p.profiles?.username || '匿名'
-    const cCount = p.comments?.[0]?.count ?? 0
-    const lCount = p.likes?.[0]?.count ?? 0
-    const tCount = p.tips?.[0]?.count ?? 0
+  postsBox.innerHTML = (data || []).map(function (p, i) {
+    const username = (p.profiles && p.profiles.username) || '匿名'
+    const cCount = (p.comments && p.comments[0] && p.comments[0].count) || 0
+    const lCount = (p.likes && p.likes[0] && p.likes[0].count) || 0
+    const tCount = (p.tips && p.tips[0] && p.tips[0].count) || 0
     const majors = p.tags_major || []
     const minors = p.tags_minor || []
 
@@ -224,7 +224,7 @@ function renderPagination(totalPages) {
   }
 
   const parts = []
-  parts.push(`<button class="page-btn" data-page="prev" ${currentPage === 1 ? 'disabled' : ''}>← 上一页</button>`)
+  parts.push('<button class="page-btn" data-page="prev" ' + (currentPage === 1 ? 'disabled' : '') + '>← 上一页</button>')
 
   const pages = []
   const maxShow = 7
@@ -242,20 +242,20 @@ function renderPagination(totalPages) {
     pages.push(totalPages)
   }
 
-  pages.forEach(p => {
+  pages.forEach(function (p) {
     if (p === '…') {
-      parts.push(`<span class="page-ellipsis">…</span>`)
+      parts.push('<span class="page-ellipsis">…</span>')
     } else {
-      parts.push(`<button class="page-btn ${p === currentPage ? 'active' : ''}" data-page="${p}">${p}</button>`)
+      parts.push('<button class="page-btn ' + (p === currentPage ? 'active' : '') + '" data-page="' + p + '">' + p + '</button>')
     }
   })
 
-  parts.push(`<button class="page-btn" data-page="next" ${currentPage === totalPages ? 'disabled' : ''}>下一页 →</button>`)
+  parts.push('<button class="page-btn" data-page="next" ' + (currentPage === totalPages ? 'disabled' : '') + '>下一页 →</button>')
 
   paginationBox.innerHTML = parts.join('')
 
-  paginationBox.querySelectorAll('.page-btn').forEach(btn => {
-    btn.onclick = () => {
+  paginationBox.querySelectorAll('.page-btn').forEach(function (btn) {
+    btn.onclick = function () {
       const target = btn.dataset.page
       let newPage = currentPage
       if (target === 'prev') newPage = Math.max(1, currentPage - 1)

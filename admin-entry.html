@@ -75,18 +75,17 @@ initTheme()
 const user = await getUser()
 if (!user) {
   const redirect = encodeURIComponent(location.pathname)
-  location.href = `login.html?redirect=${redirect}`
+  location.href = 'login.html?redirect=' + redirect
   throw new Error('redirecting')
 }
 
-// ★ 已是管理员直接跳走，不允许重复兑换
 const { data: meProfile } = await supabase
   .from('profiles')
   .select('role')
   .eq('id', user.id)
   .single()
 
-if (meProfile?.role === 'admin') {
+if (meProfile && meProfile.role === 'admin') {
   location.href = 'admin.html'
   throw new Error('already admin')
 }
@@ -111,8 +110,8 @@ $('#form').onsubmit = async (e) => {
     return
   }
 
-  if (!data?.success) {
-    showMsg($('#msg'), data?.error || '邀请码无效', 'error')
+  if (!data || !data.success) {
+    showMsg($('#msg'), (data && data.error) || '邀请码无效', 'error')
     btn.disabled = false
     btn.textContent = orig
     return

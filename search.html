@@ -69,7 +69,7 @@
 <script type="module">
 import { supabase } from './assets/supabase.js'
 import {
-  renderNav, loadPosts, escapeHtml, formatTime, initial, bindCardGlow
+  renderNav, escapeHtml, formatTime, initial, bindCardGlow
 } from './assets/app.js'
 
 renderNav()
@@ -77,7 +77,7 @@ renderNav()
 const params = new URLSearchParams(location.search)
 const q = (params.get('q') || '').trim()
 const tag = (params.get('tag') || '').trim()
-const type = params.get('type') || 'major'  // 大标签 or 小标签
+const type = params.get('type') || 'major'
 
 const titleEl = document.getElementById('page-title')
 const metaEl = document.getElementById('search-meta')
@@ -89,10 +89,10 @@ async function render() {
     .select('id, title, content, created_at, tags_major, tags_minor, profiles!author_id(username), comments(count), likes(count), tips(count)')
 
   if (q) {
-    titleEl.textContent = `搜索「${q}」`
-    query = query.or(`title.ilike.%${q}%,content.ilike.%${q}%`)
+    titleEl.textContent = '搜索「' + q + '」'
+    query = query.or('title.ilike.%' + q + '%,content.ilike.%' + q + '%')
   } else if (tag) {
-    titleEl.textContent = `标签：${tag}`
+    titleEl.textContent = '标签：' + tag
     if (type === 'major') {
       query = query.contains('tags_major', [tag])
     } else {
@@ -105,22 +105,22 @@ async function render() {
   const { data, error } = await query.order('created_at', { ascending: false })
 
   if (error) {
-    resultsEl.innerHTML = `<div class="empty">加载失败：${escapeHtml(error.message)}</div>`
+    resultsEl.innerHTML = '<div class="empty">加载失败：' + escapeHtml(error.message) + '</div>'
     return
   }
 
-  metaEl.textContent = `共 ${data?.length || 0} 条结果`
+  metaEl.textContent = '共 ' + ((data && data.length) || 0) + ' 条结果'
 
-  if (!data?.length) {
-    resultsEl.innerHTML = `<div class="empty">没有找到相关帖子</div>`
+  if (!data || !data.length) {
+    resultsEl.innerHTML = '<div class="empty">没有找到相关帖子</div>'
     return
   }
 
   resultsEl.innerHTML = data.map((p, i) => {
-    const username = p.profiles?.username || '匿名'
-    const cCount = p.comments?.[0]?.count ?? 0
-    const lCount = p.likes?.[0]?.count ?? 0
-    const tCount = p.tips?.[0]?.count ?? 0
+    const username = (p.profiles && p.profiles.username) || '匿名'
+    const cCount = (p.comments && p.comments[0] && p.comments[0].count) || 0
+    const lCount = (p.likes && p.likes[0] && p.likes[0].count) || 0
+    const tCount = (p.tips && p.tips[0] && p.tips[0].count) || 0
     const majors = p.tags_major || []
     const minors = p.tags_minor || []
 
@@ -144,11 +144,11 @@ async function render() {
         <h3>${escapeHtml(p.title)}</h3>
         ${(majors.length || minors.length) ? `
           <div class="post-tags">
-            ${majors.map(t => `<a href="search.html?tag=${encodeURIComponent(t)}&type=major" class="tag-major">${escapeHtml(t)}</a>`).join('')}
-            ${minors.map(t => `<a href="search.html?tag=${encodeURIComponent(t)}&type=minor" class="tag-minor">${escapeHtml(t)}</a>`).join('')}
+            ${majors.map(t => '<a href="search.html?tag=' + encodeURIComponent(t) + '&type=major" class="tag-major">' + escapeHtml(t) + '</a>').join('')}
+            ${minors.map(t => '<a href="search.html?tag=' + encodeURIComponent(t) + '&type=minor" class="tag-minor">' + escapeHtml(t) + '</a>').join('')}
           </div>
         ` : ''}
-        ${summary ? `<div class="card-body">${escapeHtml(summary)}</div>` : ''}
+        ${summary ? '<div class="card-body">' + escapeHtml(summary) + '</div>' : ''}
         <div class="card-foot">
           <span class="stat">💬 ${cCount}</span>
           <span class="stat">❤️ ${lCount}</span>

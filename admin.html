@@ -47,14 +47,12 @@
 
 <div class="page" style="max-width:1200px;">
 
-  <!-- 公告管理 -->
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;padding-left:0.9rem;">
     <h2 style="font-size:1.15rem;font-weight:700;color:var(--text-strong);">📢 公告管理</h2>
     <button class="btn btn-primary btn-sm" id="new-announcement">新增公告</button>
   </div>
   <div id="announcement-admin" style="margin-bottom:2rem;"></div>
 
-  <!-- 统计 -->
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;padding-left:0.9rem;">
     <h2 style="font-size:1.15rem;font-weight:700;color:var(--text-strong);">📊 数据统计</h2>
   </div>
@@ -76,7 +74,6 @@
     </div>
   </div>
 
-  <!-- 帖子管理 -->
   <div class="admin-post-head">
     <h2>📝 所有帖子</h2>
     <div class="admin-post-tools">
@@ -99,14 +96,12 @@
   <div id="post-list"></div>
   <div id="post-pagination" class="pagination"></div>
 
-  <!-- 用户管理 -->
   <div style="display:flex;justify-content:space-between;align-items:center;margin:2rem 0 1rem;padding-left:0.9rem;">
     <h2 style="font-size:1.15rem;font-weight:700;color:var(--text-strong);">👥 所有用户</h2>
     <span style="font-size:0.82rem;color:var(--text-muted);">可改滚木、设管理员、注销用户</span>
   </div>
   <div id="user-list"></div>
 
-  <!-- 邀请码管理 -->
   <div style="display:flex;justify-content:space-between;align-items:center;margin:2rem 0 1rem;padding-left:0.9rem;">
     <h2 style="font-size:1.15rem;font-weight:700;color:var(--text-strong);">🎟️ 邀请码管理</h2>
     <button class="btn btn-primary btn-sm" id="gen-invite">生成新邀请码</button>
@@ -124,7 +119,7 @@ const me = await requireAdmin()
 if (!me) throw new Error('not admin')
 
 // ============================================================
-// 帖子列表（分页 5 条 + 搜索）
+// 帖子列表
 // ============================================================
 const PAGE_SIZE = 5
 let allPosts = []
@@ -145,7 +140,7 @@ async function loadPosts() {
     .order('created_at', { ascending: false })
 
   if (error) {
-    postListBox.innerHTML = `<div class="empty">加载失败：${escapeHtml(error.message)}</div>`
+    postListBox.innerHTML = '<div class="empty">加载失败：' + escapeHtml(error.message) + '</div>'
     return
   }
 
@@ -160,8 +155,8 @@ function applyFilter() {
   } else {
     filteredPosts = allPosts.filter(p => {
       const title = (p.title || '').toLowerCase()
-      const author = (p.profiles?.username || '').toLowerCase()
-      return title.includes(kw) || author.includes(kw)
+      const author = ((p.profiles && p.profiles.username) || '').toLowerCase()
+      return title.indexOf(kw) !== -1 || author.indexOf(kw) !== -1
     })
   }
 
@@ -172,11 +167,11 @@ function applyFilter() {
 
 function renderPosts() {
   postCountEl.textContent = searchKeyword
-    ? `找到 ${filteredPosts.length} 条`
-    : `共 ${filteredPosts.length} 条`
+    ? '找到 ' + filteredPosts.length + ' 条'
+    : '共 ' + filteredPosts.length + ' 条'
 
   if (!filteredPosts.length) {
-    postListBox.innerHTML = `<div class="empty">${searchKeyword ? '没有匹配的帖子' : '暂无帖子'}</div>`
+    postListBox.innerHTML = '<div class="empty">' + (searchKeyword ? '没有匹配的帖子' : '暂无帖子') + '</div>'
     return
   }
 
@@ -184,7 +179,7 @@ function renderPosts() {
   const pageItems = filteredPosts.slice(start, start + PAGE_SIZE)
 
   postListBox.innerHTML = pageItems.map(p => {
-    const tags = [...(p.tags_major || []), ...(p.tags_minor || [])]
+    const tags = [].concat(p.tags_major || [], p.tags_minor || [])
     return `
       <div class="card" style="margin-bottom:0.6rem;">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
@@ -193,8 +188,8 @@ function renderPosts() {
               <a href="post.html?id=${p.id}" target="_blank" style="color:var(--text-strong);">${escapeHtml(p.title)}</a>
             </h3>
             <div style="font-size:0.8rem;color:var(--text-muted);">
-              ${escapeHtml(p.profiles?.username || '匿名')} · ${formatTime(p.created_at)}
-              ${tags.length ? ' · ' + tags.map(t => `<span class="tag-minor" style="font-size:0.7rem;padding:0.1rem 0.5rem;">${escapeHtml(t)}</span>`).join(' ') : ''}
+              ${escapeHtml((p.profiles && p.profiles.username) || '匿名')} · ${formatTime(p.created_at)}
+              ${tags.length ? ' · ' + tags.map(t => '<span class="tag-minor" style="font-size:0.7rem;padding:0.1rem 0.5rem;">' + escapeHtml(t) + '</span>').join(' ') : ''}
             </div>
           </div>
           <button class="btn btn-ghost btn-sm" data-del-post="${p.id}" style="color:#f87171;">删除</button>
@@ -226,7 +221,7 @@ function renderPagination() {
   }
 
   const parts = []
-  parts.push(`<button class="page-btn" data-page="prev" ${currentPage === 1 ? 'disabled' : ''}>← 上一页</button>`)
+  parts.push('<button class="page-btn" data-page="prev" ' + (currentPage === 1 ? 'disabled' : '') + '>← 上一页</button>')
 
   const pages = []
   const maxShow = 7
@@ -246,13 +241,13 @@ function renderPagination() {
 
   pages.forEach(p => {
     if (p === '…') {
-      parts.push(`<span class="page-ellipsis">…</span>`)
+      parts.push('<span class="page-ellipsis">…</span>')
     } else {
-      parts.push(`<button class="page-btn ${p === currentPage ? 'active' : ''}" data-page="${p}">${p}</button>`)
+      parts.push('<button class="page-btn ' + (p === currentPage ? 'active' : '') + '" data-page="' + p + '">' + p + '</button>')
     }
   })
 
-  parts.push(`<button class="page-btn" data-page="next" ${currentPage === totalPages ? 'disabled' : ''}>下一页 →</button>`)
+  parts.push('<button class="page-btn" data-page="next" ' + (currentPage === totalPages ? 'disabled' : '') + '>下一页 →</button>')
 
   paginationBox.innerHTML = parts.join('')
 
@@ -294,8 +289,8 @@ async function loadAnnouncements() {
     .from('announcements').select('*')
     .order('created_at', { ascending: false })
 
-  if (error || !data?.length) {
-    annBox.innerHTML = `<div class="empty">暂无公告</div>`
+  if (error || !data || !data.length) {
+    annBox.innerHTML = '<div class="empty">暂无公告</div>'
     return
   }
 
@@ -334,7 +329,7 @@ async function loadAnnouncements() {
 
 document.getElementById('new-announcement').onclick = () => openAnnEditor()
 
-function openAnnEditor(a = null) {
+function openAnnEditor(a) {
   const isEdit = !!a
   const mask = document.createElement('div')
   mask.className = 'tip-modal-mask'
@@ -373,11 +368,13 @@ function openAnnEditor(a = null) {
 
     let error
     if (isEdit) {
-      ({ error } = await supabase.from('announcements')
+      const res = await supabase.from('announcements')
         .update({ title, content, updated_at: new Date().toISOString() })
-        .eq('id', a.id))
+        .eq('id', a.id)
+      error = res.error
     } else {
-      ({ error } = await supabase.from('announcements').insert({ title, content }))
+      const res = await supabase.from('announcements').insert({ title, content })
+      error = res.error
     }
 
     if (error) {
@@ -398,9 +395,9 @@ async function loadStats() {
   const { count: pCount } = await supabase.from('posts').select('*', { count: 'exact', head: true })
   const { count: uCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true })
   const { count: cCount } = await supabase.from('comments').select('*', { count: 'exact', head: true })
-  document.getElementById('stat-posts').textContent = pCount ?? 0
-  document.getElementById('stat-users').textContent = uCount ?? 0
-  document.getElementById('stat-comments').textContent = cCount ?? 0
+  document.getElementById('stat-posts').textContent = pCount == null ? 0 : pCount
+  document.getElementById('stat-users').textContent = uCount == null ? 0 : uCount
+  document.getElementById('stat-comments').textContent = cCount == null ? 0 : cCount
 }
 
 // ============================================================
@@ -413,8 +410,8 @@ async function loadUsers() {
     .select('id, username, role, rolling_wood, created_at')
     .order('created_at', { ascending: false })
 
-  if (error || !data?.length) {
-    box.innerHTML = `<div class="empty">暂无用户</div>`
+  if (error || !data || !data.length) {
+    box.innerHTML = '<div class="empty">暂无用户</div>'
     return
   }
 
@@ -433,12 +430,12 @@ async function loadUsers() {
                 ${isSelf ? '<span class="tag" style="margin-left:0.4rem;background:rgba(20,184,166,0.15);color:var(--primary-light);border-color:rgba(20,184,166,0.3);">我</span>' : ''}
               </div>
               <div style="font-size:0.78rem;color:var(--text-muted);">
-                注册于 ${formatTime(u.created_at)} · 🪵 ${u.rolling_wood ?? 0}
+                注册于 ${formatTime(u.created_at)} · 🪵 ${u.rolling_wood == null ? 0 : u.rolling_wood}
               </div>
             </div>
           </div>
           <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
-            <button class="btn btn-ghost btn-sm" data-edit-wood="${u.id}" data-username="${escapeHtml(u.username)}" data-wood="${u.rolling_wood ?? 0}">
+            <button class="btn btn-ghost btn-sm" data-edit-wood="${u.id}" data-username="${escapeHtml(u.username)}" data-wood="${u.rolling_wood == null ? 0 : u.rolling_wood}">
               🪵 改滚木
             </button>
             ${isSelf ? '' : `
@@ -457,48 +454,45 @@ async function loadUsers() {
 
   bindCardGlow(box)
 
-  // 修改滚木
   box.querySelectorAll('[data-edit-wood]').forEach(btn => {
     btn.onclick = () => {
       openWoodEditor(btn.dataset.editWood, btn.dataset.username, Number(btn.dataset.wood))
     }
   })
 
-  // 切换管理员角色
   box.querySelectorAll('[data-toggle-role]').forEach(btn => {
     btn.onclick = async () => {
       const id = btn.dataset.toggleRole
       const current = btn.dataset.currentRole
       const next = current === 'admin' ? 'user' : 'admin'
-      if (!confirm(`确定将该用户角色改为「${next === 'admin' ? '管理员' : '普通用户'}」？`)) return
+      if (!confirm('确定将该用户角色改为「' + (next === 'admin' ? '管理员' : '普通用户') + '」？')) return
       const { error } = await supabase.from('profiles').update({ role: next }).eq('id', id)
       if (error) return alert(error.message)
       loadUsers()
     }
   })
 
-  // 删除用户
   box.querySelectorAll('[data-del-user]').forEach(btn => {
     btn.onclick = async () => {
       const id = btn.dataset.delUser
       const username = btn.dataset.username
 
-      if (!confirm(`【危险操作】确定永久删除用户「${username}」？\n\n该用户的所有帖子、评论、点赞、滚木等数据都会被一并删除，且无法恢复！`)) return
-      if (!confirm(`再次确认：真的要删除「${username}」吗？这是最后一步！`)) return
+      if (!confirm('【危险操作】确定永久删除用户「' + username + '」？\n\n该用户的所有帖子、评论、点赞、滚木等数据都会被一并删除，且无法恢复！')) return
+      if (!confirm('再次确认：真的要删除「' + username + '」吗？这是最后一步！')) return
 
       btn.disabled = true
       btn.textContent = '删除中…'
 
       const { data, error } = await supabase.rpc('admin_delete_user', { target_user_id: id })
 
-      if (error || !data?.success) {
-        alert(error?.message || data?.error || '删除失败')
+      if (error || !data || !data.success) {
+        alert((error && error.message) || (data && data.error) || '删除失败')
         btn.disabled = false
         btn.textContent = '删除账号'
         return
       }
 
-      alert(`用户「${username}」已被注销`)
+      alert('用户「' + username + '」已被注销')
       loadUsers()
       loadStats()
       loadPosts()
@@ -549,12 +543,10 @@ function openWoodEditor(userId, username, currentWood) {
   const input = mask.querySelector('#wood-input')
   setTimeout(() => { input.focus(); input.select() }, 100)
 
-  // 快捷数值
   mask.querySelectorAll('[data-quick]').forEach(b => {
     b.onclick = () => { input.value = b.dataset.quick; input.focus() }
   })
 
-  // 加减按钮
   mask.querySelectorAll('[data-add]').forEach(b => {
     b.onclick = () => {
       const val = (Number(input.value) || 0) + Number(b.dataset.add)
@@ -578,12 +570,10 @@ function openWoodEditor(userId, username, currentWood) {
   }
   document.addEventListener('keydown', onEsc)
 
-  // 回车保存
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); save() }
   })
 
-  // 保存
   async function save() {
     const val = Math.floor(Number(input.value))
     if (!Number.isFinite(val) || val < 0) {
@@ -623,7 +613,7 @@ function openWoodEditor(userId, username, currentWood) {
 function randomCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
   const seg = (n) => Array.from({ length: n }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
-  return `LR-${seg(4)}-${seg(4)}-${seg(4)}`
+  return 'LR-' + seg(4) + '-' + seg(4) + '-' + seg(4)
 }
 
 document.getElementById('gen-invite').onclick = async () => {
@@ -633,7 +623,7 @@ document.getElementById('gen-invite').onclick = async () => {
   const { error } = await supabase.from('admin_invites').insert({ code, note })
   if (error) return alert(error.message)
   loadInvites()
-  alert(`新邀请码：\n\n${code}\n\n请复制保存。`)
+  alert('新邀请码：\n\n' + code + '\n\n请复制保存。')
 }
 
 async function loadInvites() {
@@ -643,8 +633,8 @@ async function loadInvites() {
     .select('code, created_at, used_at, note, used_by, is_permanent')
     .order('created_at', { ascending: false })
 
-  if (error || !data?.length) {
-    box.innerHTML = `<div class="empty">还没有邀请码</div>`
+  if (error || !data || !data.length) {
+    box.innerHTML = '<div class="empty">还没有邀请码</div>'
     return
   }
 
@@ -660,10 +650,10 @@ async function loadInvites() {
               ${inv.is_permanent ? '<span class="tag" style="margin-left:0.4rem;">永久</span>' : ''}
             </div>
             <div style="font-size:0.78rem;color:var(--text-muted);margin-top:0.3rem;">
-              ${inv.note ? escapeHtml(inv.note) + ' · ' : ''}${used ? `已于 ${formatTime(inv.used_at)} 使用` : '未使用'}
+              ${inv.note ? escapeHtml(inv.note) + ' · ' : ''}${used ? '已于 ' + formatTime(inv.used_at) + ' 使用' : '未使用'}
             </div>
           </div>
-          ${used ? '' : `<button class="btn btn-ghost btn-sm" data-copy="${escapeHtml(inv.code)}">复制</button>`}
+          ${used ? '' : '<button class="btn btn-ghost btn-sm" data-copy="' + escapeHtml(inv.code) + '">复制</button>'}
         </div>
       </div>
     `
