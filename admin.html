@@ -102,7 +102,7 @@
   <!-- 用户管理 -->
   <div style="display:flex;justify-content:space-between;align-items:center;margin:2rem 0 1rem;padding-left:0.9rem;">
     <h2 style="font-size:1.15rem;font-weight:700;color:var(--text-strong);">👥 所有用户</h2>
-    <span style="font-size:0.82rem;color:var(--text-muted);">可设置 / 取消管理员</span>
+    <span style="font-size:0.82rem;color:var(--text-muted);">可改滚木、设管理员、注销用户</span>
   </div>
   <div id="user-list"></div>
 
@@ -127,8 +127,8 @@ if (!me) throw new Error('not admin')
 // 帖子列表（分页 5 条 + 搜索）
 // ============================================================
 const PAGE_SIZE = 5
-let allPosts = []         // 全量缓存
-let filteredPosts = []    // 过滤后
+let allPosts = []
+let filteredPosts = []
 let currentPage = 1
 let searchKeyword = ''
 
@@ -210,7 +210,6 @@ function renderPosts() {
       if (!confirm('确定删除这个帖子？')) return
       const { error } = await supabase.from('posts').delete().eq('id', btn.dataset.delPost)
       if (error) return alert(error.message)
-      // 从缓存中移除
       allPosts = allPosts.filter(x => x.id !== Number(btn.dataset.delPost))
       applyFilter()
       loadStats()
@@ -229,7 +228,6 @@ function renderPagination() {
   const parts = []
   parts.push(`<button class="page-btn" data-page="prev" ${currentPage === 1 ? 'disabled' : ''}>← 上一页</button>`)
 
-  // 生成页码（最多显示 7 个）
   const pages = []
   const maxShow = 7
   let start = Math.max(1, currentPage - Math.floor(maxShow / 2))
@@ -267,13 +265,11 @@ function renderPagination() {
 
       renderPosts()
       renderPagination()
-      // 滚到帖子列表顶部
       document.querySelector('.admin-post-head').scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   })
 }
 
-// ============ 搜索 ============
 searchInput.addEventListener('input', () => {
   searchKeyword = searchInput.value
   searchClearBtn.style.display = searchKeyword.trim() ? 'flex' : 'none'
@@ -424,6 +420,7 @@ async function loadUsers() {
 
   box.innerHTML = data.map(u => {
     const isAdmin = u.role === 'admin'
+    const isSelf = u.id === me.id
     return `
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
@@ -433,23 +430,41 @@ async function loadUsers() {
               <div style="font-weight:600;color:var(--text-strong);">
                 ${escapeHtml(u.username)}
                 ${isAdmin ? '<span class="tag" style="margin-left:0.4rem;">管理员</span>' : ''}
+                ${isSelf ? '<span class="tag" style="margin-left:0.4rem;background:rgba(20,184,166,0.15);color:var(--primary-light);border-color:rgba(20,184,166,0.3);">我</span>' : ''}
               </div>
               <div style="font-size:0.78rem;color:var(--text-muted);">
                 注册于 ${formatTime(u.created_at)} · 🪵 ${u.rolling_wood ?? 0}
               </div>
             </div>
           </div>
-          ${u.id === me.id ? `<span style="font-size:0.8rem;color:var(--text-muted);">（你自己）</span>` : `
-            <button class="btn btn-ghost btn-sm" data-toggle-role="${u.id}" data-current-role="${u.role}">
-              ${isAdmin ? '取消管理员' : '设为管理员'}
+          <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+            <button class="btn btn-ghost btn-sm" data-edit-wood="${u.id}" data-username="${escapeHtml(u.username)}" data-wood="${u.rolling_wood ?? 0}">
+              🪵 改滚木
             </button>
-          `}
+            ${isSelf ? '' : `
+              <button class="btn btn-ghost btn-sm" data-toggle-role="${u.id}" data-current-role="${u.role}">
+                ${isAdmin ? '取消管理员' : '设为管理员'}
+              </button>
+              <button class="btn btn-ghost btn-sm admin-del" data-del-user="${u.id}" data-username="${escapeHtml(u.username)}">
+                删除账号
+              </button>
+            `}
+          </div>
         </div>
       </div>
     `
   }).join('')
 
   bindCardGlow(box)
+
+  // 修改滚木
+  box.querySelectorAll('[data-edit-wood]').forEach(btn => {
+    btn.onclick = () => {
+      openWoodEditor(btn.dataset.editWood, btn.dataset.username, Number(btn.dataset.wood))
+    }
+  })
+
+  // 切换管理员角色
   box.querySelectorAll('[data-toggle-role]').forEach(btn => {
     btn.onclick = async () => {
       const id = btn.dataset.toggleRole
@@ -461,6 +476,145 @@ async function loadUsers() {
       loadUsers()
     }
   })
+
+  // 删除用户
+  box.querySelectorAll('[data-del-user]').forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.dataset.delUser
+      const username = btn.dataset.username
+
+      if (!confirm(`【危险操作】确定永久删除用户「${username}」？\n\n该用户的所有帖子、评论、点赞、滚木等数据都会被一并删除，且无法恢复！`)) return
+      if (!confirm(`再次确认：真的要删除「${username}」吗？这是最后一步！`)) return
+
+      btn.disabled = true
+      btn.textContent = '删除中…'
+
+      const { data, error } = await supabase.rpc('admin_delete_user', { target_user_id: id })
+
+      if (error || !data?.success) {
+        alert(error?.message || data?.error || '删除失败')
+        btn.disabled = false
+        btn.textContent = '删除账号'
+        return
+      }
+
+      alert(`用户「${username}」已被注销`)
+      loadUsers()
+      loadStats()
+      loadPosts()
+    }
+  })
+}
+
+// ============================================================
+// 修改滚木弹窗
+// ============================================================
+function openWoodEditor(userId, username, currentWood) {
+  const mask = document.createElement('div')
+  mask.className = 'tip-modal-mask'
+  mask.innerHTML = `
+    <div class="tip-modal" style="max-width:400px;">
+      <h3>修改滚木</h3>
+      <p>用户：<strong style="color:var(--primary-light);">${username}</strong></p>
+
+      <div class="form-group" style="margin-top:1rem;">
+        <label>滚木数量</label>
+        <input id="wood-input" type="number" min="0" max="9999999" value="${currentWood}"
+               style="text-align:center;font-size:1.5rem;font-weight:800;letter-spacing:0.05em;">
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.4rem;margin-bottom:1.2rem;">
+        <button type="button" class="btn btn-ghost btn-sm" data-quick="0">0</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-quick="10">10</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-quick="100">100</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-quick="999">999</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-quick="9999">9999</button>
+      </div>
+
+      <div style="display:flex;gap:0.4rem;margin-bottom:1.2rem;">
+        <button type="button" class="btn btn-ghost btn-sm" data-add="1" style="flex:1;">+1</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-add="10" style="flex:1;">+10</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-add="100" style="flex:1;">+100</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-sub="10" style="flex:1;">-10</button>
+      </div>
+
+      <div class="tip-modal-actions">
+        <button class="btn btn-ghost" id="wood-cancel">取消</button>
+        <button class="btn btn-primary" id="wood-save">保存</button>
+      </div>
+    </div>
+  `
+  document.body.appendChild(mask)
+
+  const input = mask.querySelector('#wood-input')
+  setTimeout(() => { input.focus(); input.select() }, 100)
+
+  // 快捷数值
+  mask.querySelectorAll('[data-quick]').forEach(b => {
+    b.onclick = () => { input.value = b.dataset.quick; input.focus() }
+  })
+
+  // 加减按钮
+  mask.querySelectorAll('[data-add]').forEach(b => {
+    b.onclick = () => {
+      const val = (Number(input.value) || 0) + Number(b.dataset.add)
+      input.value = Math.max(0, val)
+      input.focus()
+    }
+  })
+  mask.querySelectorAll('[data-sub]').forEach(b => {
+    b.onclick = () => {
+      const val = Math.max(0, (Number(input.value) || 0) - Number(b.dataset.sub))
+      input.value = val
+      input.focus()
+    }
+  })
+
+  const close = () => mask.remove()
+  mask.querySelector('#wood-cancel').onclick = close
+  mask.onclick = (e) => { if (e.target === mask) close() }
+  const onEsc = (e) => {
+    if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onEsc) }
+  }
+  document.addEventListener('keydown', onEsc)
+
+  // 回车保存
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); save() }
+  })
+
+  // 保存
+  async function save() {
+    const val = Math.floor(Number(input.value))
+    if (!Number.isFinite(val) || val < 0) {
+      alert('请输入有效的数字（≥ 0）')
+      return
+    }
+    if (val > 9999999) {
+      alert('滚木数量上限为 9999999')
+      return
+    }
+
+    const btn = mask.querySelector('#wood-save')
+    btn.disabled = true
+    btn.textContent = '保存中…'
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ rolling_wood: val })
+      .eq('id', userId)
+
+    if (error) {
+      alert(error.message)
+      btn.disabled = false
+      btn.textContent = '保存'
+      return
+    }
+    close()
+    loadUsers()
+  }
+
+  mask.querySelector('#wood-save').onclick = save
 }
 
 // ============================================================
