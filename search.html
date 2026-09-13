@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0e1a">
+<title>搜索 · 老弱病残BBS</title>
+<link rel="stylesheet" href="assets/style.css">
+<script>
+  (function () {
+    try {
+      const saved = localStorage.getItem('theme')
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      document.documentElement.setAttribute('data-theme', saved || (prefersDark ? 'dark' : 'light'))
+    } catch (e) {}
+  })()
+</script>
+</head>
+<body>
+
+<header class="main-header">
+  <div class="header-inner">
+    <a href="index.html" class="brand nav-logo">
+      <span class="brand-name">老弱病残BBS</span>
+    </a>
+    <nav class="main-nav">
+      <a href="index.html">论坛</a>
+      <a href="boards.html">板块</a>
+      <a href="new.html">发帖</a>
+    </nav>
+    <div class="header-search">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input id="nav-search" type="text" placeholder="搜索帖子…" autocomplete="off">
+      <button id="search-clear" class="search-clear" type="button" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="header-actions">
+      <button class="theme-toggle" id="theme-toggle" aria-label="切换主题">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+        </svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+      <span id="nav-right" class="nav-right"></span>
+    </div>
+  </div>
+</header>
+
+<div class="page" style="max-width:1100px;">
+  <a href="index.html" style="font-size:0.9rem;color:var(--text-dim);display:inline-flex;align-items:center;gap:0.3rem;margin-bottom:1rem;">← 返回首页</a>
+
+  <h1 id="page-title">搜索结果</h1>
+  <div id="search-meta" style="color:var(--text-dim);font-size:0.95rem;margin-bottom:1.5rem;"></div>
+
+  <div id="results"><div class="empty">加载中…</div></div>
+</div>
+
+<script type="module">
+import { supabase } from './assets/supabase.js'
+import {
+  renderNav, loadPosts, escapeHtml, formatTime, initial, bindCardGlow
+} from './assets/app.js'
+
+renderNav()
+
+const params = new URLSearchParams(location.search)
+const q = (params.get('q') || '').trim()
+const tag = (params.get('tag') || '').trim()
+const type = params.get('type') || 'major'  // 大标签 or 小标签
+
+const titleEl = document.getElementById('page-title')
+const metaEl = document.getElementById('search-meta')
+const resultsEl = document.getElementById('results')
+
+async function render() {
+  let query = supabase
+    .from('posts')
+    .select('id, title, content, created_at, tags_major, tags_minor, profiles!author_id(username), comments(count), likes(count), tips(count)')
+
+  if (q) {
+    titleEl.textContent = `搜索「${q}」`
+    query = query.or(`title.ilike.%${q}%,content.ilike.%${q}%`)
+  } else if (tag) {
+    titleEl.textContent = `标签：${tag}`
+    if (type === 'major') {
+      query = query.contains('tags_major', [tag])
+    } else {
+      query = query.contains('tags_minor', [tag])
+    }
+  } else {
+    titleEl.textContent = '搜索结果'
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false })
+
+  if (error) {
+    resultsEl.innerHTML = `<div class="empty">加载失败：${escapeHtml(error.message)}</div>`
+    return
+  }
+
+  metaEl.textContent = `共 ${data?.length || 0} 条结果`
+
+  if (!data?.length) {
+    resultsEl.innerHTML = `<div class="empty">没有找到相关帖子</div>`
+    return
+  }
+
+  resultsEl.innerHTML = data.map((p, i) => {
+    const username = p.profiles?.username || '匿名'
+    const cCount = p.comments?.[0]?.count ?? 0
+    const lCount = p.likes?.[0]?.count ?? 0
+    const tCount = p.tips?.[0]?.count ?? 0
+    const majors = p.tags_major || []
+    const minors = p.tags_minor || []
+
+    const raw = String(p.content || '')
+      .replace(/!\[[^\]]*\]\([^)]+\)/g, '[图片]')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/[#*>`~_\-]/g, '')
+      .replace(/\n+/g, ' ').trim()
+    const summary = raw.slice(0, 140) + (raw.length > 140 ? '…' : '')
+
+    return `
+      <div class="card post-card" style="animation-delay:${Math.min(i * 55, 400)}ms;">
+        <a href="post.html?id=${p.id}" class="post-link"></a>
+        <div class="card-head">
+          <div class="avatar">${escapeHtml(initial(username))}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:0.85rem;color:var(--text-dim);font-weight:500;">${escapeHtml(username)}</div>
+            <div style="font-size:0.78rem;color:var(--text-muted);">${formatTime(p.created_at)}</div>
+          </div>
+        </div>
+        <h3>${escapeHtml(p.title)}</h3>
+        ${(majors.length || minors.length) ? `
+          <div class="post-tags">
+            ${majors.map(t => `<a href="search.html?tag=${encodeURIComponent(t)}&type=major" class="tag-major">${escapeHtml(t)}</a>`).join('')}
+            ${minors.map(t => `<a href="search.html?tag=${encodeURIComponent(t)}&type=minor" class="tag-minor">${escapeHtml(t)}</a>`).join('')}
+          </div>
+        ` : ''}
+        ${summary ? `<div class="card-body">${escapeHtml(summary)}</div>` : ''}
+        <div class="card-foot">
+          <span class="stat">💬 ${cCount}</span>
+          <span class="stat">❤️ ${lCount}</span>
+          <span class="stat">🪵 ${tCount}</span>
+          <span class="stat" style="color:var(--primary-light);margin-left:auto;">查看 →</span>
+        </div>
+      </div>
+    `
+  }).join('')
+
+  bindCardGlow(resultsEl)
+}
+
+render()
+</script>
+</body>
+</html>

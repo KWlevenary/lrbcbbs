@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0e1a">
+<title>全部帖子 · 老弱病残BBS</title>
+<link rel="stylesheet" href="assets/style.css">
+<script>
+  (function () {
+    try {
+      const saved = localStorage.getItem('theme')
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      document.documentElement.setAttribute('data-theme', saved || (prefersDark ? 'dark' : 'light'))
+    } catch (e) {}
+  })()
+</script>
+</head>
+<body>
+
+<header class="main-header">
+  <div class="header-inner">
+    <a href="index.html" class="brand nav-logo">
+      <span class="brand-name">老弱病残BBS</span>
+    </a>
+    <nav class="main-nav">
+      <a href="index.html">首页</a>
+      <a href="boards.html" class="active">全部帖子</a>
+      <a href="new.html">发帖</a>
+    </nav>
+    <div class="header-search">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input id="nav-search" type="text" placeholder="搜索帖子…" autocomplete="off">
+      <button id="search-clear" class="search-clear" type="button" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="header-actions">
+      <button class="theme-toggle" id="theme-toggle" aria-label="切换主题">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+        </svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+      <span id="nav-right" class="nav-right"></span>
+    </div>
+  </div>
+</header>
+
+<div class="page" style="max-width:1100px;">
+  <div class="page-section-head" style="margin-bottom:1.2rem;">
+    <h2>📚 全部帖子</h2>
+    <span class="sub" id="count-sub">加载中…</span>
+  </div>
+
+  <div class="board-filter" id="board-filter">
+    <button class="filter-btn active" data-tag="">
+      <span class="filter-icon">📚</span>
+      <span class="filter-name">全部</span>
+      <span class="filter-badge" id="badge-all">—</span>
+    </button>
+    <button class="filter-btn" data-tag="游戏">
+      <span class="filter-icon">🎮</span>
+      <span class="filter-name">游戏</span>
+      <span class="filter-badge" id="badge-游戏">—</span>
+    </button>
+    <button class="filter-btn" data-tag="工具">
+      <span class="filter-icon">🔧</span>
+      <span class="filter-name">工具</span>
+      <span class="filter-badge" id="badge-工具">—</span>
+    </button>
+    <button class="filter-btn" data-tag="软件">
+      <span class="filter-icon">💻</span>
+      <span class="filter-name">软件</span>
+      <span class="filter-badge" id="badge-软件">—</span>
+    </button>
+    <button class="filter-btn" data-tag="其他">
+      <span class="filter-icon">📦</span>
+      <span class="filter-name">其他</span>
+      <span class="filter-badge" id="badge-其他">—</span>
+    </button>
+  </div>
+
+  <div id="posts"><div class="empty">加载中…</div></div>
+  <div id="pagination" class="pagination"></div>
+</div>
+
+<script type="module">
+import { supabase } from './assets/supabase.js'
+import { renderNav, escapeHtml, formatTime, initial, bindCardGlow } from './assets/app.js'
+
+renderNav()
+
+const PAGE_SIZE = 8
+let currentTag = ''
+let currentPage = 1
+let currentTotal = 0
+
+const postsBox = document.getElementById('posts')
+const paginationBox = document.getElementById('pagination')
+const countSub = document.getElementById('count-sub')
+const filterBox = document.getElementById('board-filter')
+
+// ============ 加载各板块数量 ============
+async function loadBadgeCounts() {
+  const { data } = await supabase.from('posts').select('tags_major')
+  const counts = { '': 0, '游戏': 0, '工具': 0, '软件': 0, '其他': 0 }
+  ;(data || []).forEach(p => {
+    counts['']++
+    for (const t of (p.tags_major || [])) {
+      if (counts[t] !== undefined) counts[t]++
+    }
+  })
+  Object.entries(counts).forEach(([k, v]) => {
+    const el = document.getElementById('badge-' + (k || 'all'))
+    if (el) el.textContent = v
+  })
+}
+
+// ============ 加载帖子（分页） ============
+async function loadPosts(tag = '', page = 1) {
+  currentTag = tag
+  currentPage = page
+
+  postsBox.innerHTML = '<div class="empty">加载中…</div>'
+
+  // 1. 先查总数
+  let countQuery = supabase
+    .from('posts')
+    .select('*', { count: 'exact', head: true })
+
+  if (tag) countQuery = countQuery.contains('tags_major', [tag])
+
+  const { count } = await countQuery
+  currentTotal = count ?? 0
+
+  const totalPages = Math.max(1, Math.ceil(currentTotal / PAGE_SIZE))
+
+  // 修正页码
+  if (page < 1) page = 1
+  if (page > totalPages) page = totalPages
+  currentPage = page
+
+  countSub.textContent = tag
+    ? `「${tag}」共 ${currentTotal} 篇`
+    : `共 ${currentTotal} 篇帖子`
+
+  if (!currentTotal) {
+    postsBox.innerHTML = `
+      <div class="empty">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <div>${tag ? `「${escapeHtml(tag)}」板块还没有帖子` : '还没有帖子'}，<a href="new.html">来发第一帖</a>吧</div>
+      </div>
+    `
+    paginationBox.innerHTML = ''
+    return
+  }
+
+  // 2. 分页查询
+  const from = (page - 1) * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
+
+  let query = supabase
+    .from('posts')
+    .select('id, title, content, created_at, tags_major, tags_minor, profiles!author_id(username), comments(count), likes(count), tips(count)')
+    .order('created_at', { ascending: false })
+    .range(from, to)
+
+  if (tag) query = query.contains('tags_major', [tag])
+
+  const { data, error } = await query
+
+  if (error) {
+    postsBox.innerHTML = `<div class="empty">加载失败：${escapeHtml(error.message)}</div>`
+    return
+  }
+
+  postsBox.innerHTML = data.map((p, i) => {
+    const username = p.profiles?.username || '匿名'
+    const cCount = p.comments?.[0]?.count ?? 0
+    const lCount = p.likes?.[0]?.count ?? 0
+    const tCount = p.tips?.[0]?.count ?? 0
+    const majors = p.tags_major || []
+    const minors = p.tags_minor || []
+
+    const raw = String(p.content || '')
+      .replace(/!\[[^\]]*\]\([^)]+\)/g, '[图片]')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/[#*>`~_\-]/g, '')
+      .replace(/\n+/g, ' ').trim()
+    const summary = raw.slice(0, 140) + (raw.length > 140 ? '…' : '')
+
+    return `
+      <div class="card post-card" style="animation-delay:${Math.min(i * 55, 400)}ms;">
+        <a href="post.html?id=${p.id}" class="post-link" aria-label="${escapeHtml(p.title)}"></a>
+        <div class="card-head">
+          <div class="avatar">${escapeHtml(initial(username))}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:0.85rem;color:var(--text-dim);font-weight:500;">${escapeHtml(username)}</div>
+            <div style="font-size:0.78rem;color:var(--text-muted);">${formatTime(p.created_at)}</div>
+          </div>
+        </div>
+        <h3>${escapeHtml(p.title)}</h3>
+        ${(majors.length || minors.length) ? `
+          <div class="post-tags">
+            ${majors.map(t => `<a href="board.html?tag=${encodeURIComponent(t)}" class="tag-major">${escapeHtml(t)}</a>`).join('')}
+            ${minors.map(t => `<a href="search.html?tag=${encodeURIComponent(t)}&type=minor" class="tag-minor">${escapeHtml(t)}</a>`).join('')}
+          </div>
+        ` : ''}
+        ${summary ? `<div class="card-body">${escapeHtml(summary)}</div>` : ''}
+        <div class="card-foot">
+          <span class="stat">
+            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            ${cCount}
+          </span>
+          <span class="stat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+            ${lCount}
+          </span>
+          <span class="stat" title="收到滚木">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="8" width="18" height="4" rx="2"/>
+              <path d="M5 12v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8"/>
+            </svg>
+            ${tCount}
+          </span>
+          <span class="stat" style="color:var(--primary-light);margin-left:auto;">查看 →</span>
+        </div>
+      </div>
+    `
+  }).join('')
+
+  bindCardGlow(postsBox)
+  renderPagination(totalPages)
+}
+
+// ============ 分页渲染 ============
+function renderPagination(totalPages) {
+  if (totalPages <= 1) {
+    paginationBox.innerHTML = ''
+    return
+  }
+
+  const parts = []
+  parts.push(`<button class="page-btn" data-page="prev" ${currentPage === 1 ? 'disabled' : ''}>← 上一页</button>`)
+
+  const pages = []
+  const maxShow = 7
+  let start = Math.max(1, currentPage - Math.floor(maxShow / 2))
+  let end = Math.min(totalPages, start + maxShow - 1)
+  if (end - start + 1 < maxShow) start = Math.max(1, end - maxShow + 1)
+
+  if (start > 1) {
+    pages.push(1)
+    if (start > 2) pages.push('…')
+  }
+  for (let i = start; i <= end; i++) pages.push(i)
+  if (end < totalPages) {
+    if (end < totalPages - 1) pages.push('…')
+    pages.push(totalPages)
+  }
+
+  pages.forEach(p => {
+    if (p === '…') {
+      parts.push(`<span class="page-ellipsis">…</span>`)
+    } else {
+      parts.push(`<button class="page-btn ${p === currentPage ? 'active' : ''}" data-page="${p}">${p}</button>`)
+    }
+  })
+
+  parts.push(`<button class="page-btn" data-page="next" ${currentPage === totalPages ? 'disabled' : ''}>下一页 →</button>`)
+
+  paginationBox.innerHTML = parts.join('')
+
+  paginationBox.querySelectorAll('.page-btn').forEach(btn => {
+    btn.onclick = () => {
+      const target = btn.dataset.page
+      let newPage = currentPage
+      if (target === 'prev') newPage = Math.max(1, currentPage - 1)
+      else if (target === 'next') newPage = Math.min(totalPages, currentPage + 1)
+      else newPage = Number(target)
+
+      if (newPage === currentPage) return
+
+      loadPosts(currentTag, newPage)
+      // 滚到顶部
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  })
+}
+
+// ============ 板块筛选 ============
+filterBox.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.onclick = () => {
+    filterBox.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'))
+    btn.classList.add('active')
+    history.replaceState(null, '', btn.dataset.tag ? `?tag=${encodeURIComponent(btn.dataset.tag)}` : location.pathname)
+    loadPosts(btn.dataset.tag, 1)
+  }
+})
+
+// ============ 初始化 ============
+const urlTag = new URLSearchParams(location.search).get('tag') || ''
+if (urlTag) {
+  const btn = filterBox.querySelector(`[data-tag="${urlTag}"]`)
+  if (btn) {
+    filterBox.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'))
+    btn.classList.add('active')
+  }
+}
+
+loadBadgeCounts()
+loadPosts(urlTag, 1)
+</script>
+</body>
+</html>

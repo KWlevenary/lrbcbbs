@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0e1a">
+<title>详情 · 老弱病残BBS</title>
+<link rel="stylesheet" href="assets/style.css">
+<script>
+  (function () {
+    try {
+      const saved = localStorage.getItem('theme')
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      document.documentElement.setAttribute('data-theme', saved || (prefersDark ? 'dark' : 'light'))
+    } catch (e) {}
+  })()
+</script>
+</head>
+<body>
+
+<header class="main-header">
+  <div class="header-inner">
+    <a href="index.html" class="brand nav-logo">
+      <span class="brand-name">老弱病残BBS</span>
+    </a>
+    <nav class="main-nav">
+      <a href="index.html">首页</a>
+      <a href="boards.html">全部帖子</a>
+      <a href="new.html">发帖</a>
+    </nav>
+    <div class="header-search">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input id="nav-search" type="text" placeholder="搜索帖子…" autocomplete="off">
+      <button id="search-clear" class="search-clear" type="button" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="header-actions">
+      <button class="theme-toggle" id="theme-toggle" aria-label="切换主题">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+        </svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+      <span id="nav-right" class="nav-right"></span>
+    </div>
+  </div>
+</header>
+
+<div class="page" id="main" style="max-width:1100px;">
+  <div class="empty">加载中…</div>
+</div>
+
+<script type="module">
+import { supabase } from './assets/supabase.js'
+import {
+  $, escapeHtml, formatTime, renderNav, getUser, bindCardGlow, initial
+} from './assets/app.js'
+import { marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js'
+import DOMPurify from 'https://cdn.jsdelivr.net/npm/dompurify/dist/purify.es.mjs'
+
+marked.setOptions({ breaks: true, gfm: true })
+
+function esc(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+
+// Markdown 渲染（含链接卡片）
+function renderMd(text) {
+  if (!text) return ''
+
+  const cards = []
+  text = text.replace(/\[\[CARD:([^|]+)\|([^|]+)\|([^|]*)\|([^|]+)\|([^|]+)\]\]/g,
+    (m, url, title, desc, icon, color) => {
+      const idx = cards.length
+      cards.push({
+        url: url.trim(),
+        title: title.trim(),
+        desc: desc.trim(),
+        icon: icon.trim(),
+        color: ['blue','green','purple','orange','red','cyan'].includes(color.trim()) ? color.trim() : 'blue'
+      })
+      return `%%CARD_${idx}%%`
+    })
+
+  let html = DOMPurify.sanitize(marked.parse(text), {
+    ADD_ATTR: ['target', 'rel']
+  })
+
+  const buildCard = (c) => `<a class="link-card link-card-${c.color}" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer nofollow">
+    <div class="link-card-icon">${esc(c.icon)}</div>
+    <div class="link-card-body">
+      <div class="link-card-title">${esc(c.title)}</div>
+      ${c.desc ? `<div class="link-card-desc">${esc(c.desc)}</div>` : ''}
+    </div>
+    <div class="link-card-arrow">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"/>
+        <polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </div>
+  </a>`
+
+  html = html.replace(/<p>\s*%%CARD_(\d+)%%\s*<\/p>/g, (m, idx) => buildCard(cards[Number(idx)]) || '')
+  html = html.replace(/%%CARD_(\d+)%%/g, (m, idx) => buildCard(cards[Number(idx)]) || '')
+
+  return html
+}
+
+// 头像 HTML 生成（含链接）
+function avatarLink(authorId, name, avatarUrl, size = 30) {
+  const inner = avatarUrl
+    ? `<img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(name)}" class="avatar avatar-img" style="width:${size}px;height:${size}px;">`
+    : `<div class="avatar" style="width:${size}px;height:${size}px;font-size:${Math.max(11, Math.round(size * 0.4))}px;">${escapeHtml(initial(name))}</div>`
+  return `<a href="profile.html?id=${encodeURIComponent(authorId)}" class="avatar-link" onclick="event.stopPropagation();">${inner}</a>`
+}
+
+renderNav()
+
+const id = new URLSearchParams(location.search).get('id')
+if (!id) {
+  $('#main').innerHTML = '<div class="empty">缺少 id 参数</div>'
+  throw new Error('no id')
+}
+
+const user = await getUser()
+
+// 加载帖子（含作者头像）
+const { data: post, error } = await supabase
+  .from('posts')
+  .select('id, title, content, created_at, author_id, tags_major, tags_minor, profiles!author_id(username, avatar_url)')
+  .eq('id', id)
+  .single()
+
+if (error || !post) {
+  $('#main').innerHTML = '<div class="empty">帖子不存在或已被删除</div>'
+  throw error
+}
+
+const meProfile = user
+  ? (await supabase.from('profiles').select('role, rolling_wood').eq('id', user.id).single()).data
+  : null
+const isAdmin = meProfile?.role === 'admin'
+const authorName = post.profiles?.username || '匿名'
+const authorAvatar = post.profiles?.avatar_url
+const isPostAuthor = user && user.id === post.author_id
+const canDeletePost = user && (isPostAuthor || isAdmin)
+
+// 点赞状态
+const { count: likeCount } = await supabase
+  .from('likes').select('*', { count: 'exact', head: true }).eq('post_id', id)
+
+let liked = false
+if (user) {
+  const { data: lk } = await supabase
+    .from('likes').select('user_id')
+    .eq('post_id', id).eq('user_id', user.id).maybeSingle()
+  liked = !!lk
+}
+let currentLikes = likeCount ?? 0
+
+// 滚木总数
+const { data: tipSum } = await supabase
+  .from('tips').select('amount').eq('post_id', id)
+let tipTotal = (tipSum || []).reduce((s, t) => s + (t.amount || 0), 0)
+
+const redirectParam = encodeURIComponent(location.pathname + location.search)
+const majors = post.tags_major || []
+const minors = post.tags_minor || []
+
+$('#main').innerHTML = `
+  <a href="index.html" style="font-size:0.9rem;color:var(--text-dim);display:inline-flex;align-items:center;gap:0.3rem;margin-bottom:1rem;">← 返回列表</a>
+
+  <div class="card" style="padding:1.8rem;">
+    <div class="card-head" style="display:flex;align-items:center;gap:0.7rem;margin-bottom:1rem;">
+      ${avatarLink(post.author_id, authorName, authorAvatar, 44)}
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:0.95rem;color:var(--text-strong);font-weight:600;display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;">
+          <a href="profile.html?id=${encodeURIComponent(post.author_id)}" style="color:inherit;">${escapeHtml(authorName)}</a>
+          ${isPostAuthor && isAdmin ? '<span class="admin-badge">管理员</span>' : ''}
+        </div>
+        <div style="font-size:0.82rem;color:var(--text-muted);">${formatTime(post.created_at)}</div>
+      </div>
+    </div>
+    <h1 style="font-size:1.9rem;">${escapeHtml(post.title)}</h1>
+
+    ${(majors.length || minors.length) ? `
+      <div class="post-tags" style="margin-top:0.5rem;">
+        ${majors.map(t => `<a href="board.html?tag=${encodeURIComponent(t)}" class="tag-major">${escapeHtml(t)}</a>`).join('')}
+        ${minors.map(t => `<a href="search.html?tag=${encodeURIComponent(t)}&type=minor" class="tag-minor">${escapeHtml(t)}</a>`).join('')}
+      </div>
+    ` : ''}
+
+    <div class="post-content" id="post-body">${renderMd(post.content)}</div>
+
+    <div class="post-actions">
+      <button class="like-btn ${liked ? 'liked' : ''}" id="like-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+        <span id="like-count">${currentLikes}</span>
+      </button>
+
+      <button class="tip-btn" id="tip-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="8" width="18" height="4" rx="2"/>
+          <path d="M5 12v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8"/>
+        </svg>
+        赞赏滚木
+      </button>
+
+      <span class="tip-received" id="tip-received" ${tipTotal > 0 ? '' : 'style="display:none;"'}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="8" width="18" height="4" rx="2"/>
+          <path d="M5 12v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8"/>
+        </svg>
+        <span id="tip-total">${tipTotal}</span>
+      </span>
+
+      ${canDeletePost ? `
+        <button class="btn btn-ghost btn-sm del-btn${isAdmin && !isPostAuthor ? ' admin-del' : ''}" id="del-btn" style="margin-left:auto;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;stroke:currentColor;fill:none;margin-right:0.3rem;">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+          ${isAdmin && !isPostAuthor ? '管理员删除' : '删除帖子'}
+        </button>
+      ` : ''}
+    </div>
+  </div>
+
+  <div class="card" style="padding:1.8rem;margin-top:1.2rem;">
+    <h2 style="margin-bottom:0.8rem;">
+      评论
+      <span id="comment-count" style="font-size:0.9rem;color:var(--text-muted);font-weight:500;"></span>
+      ${isAdmin ? '<span class="admin-badge" style="margin-left:0.6rem;">管理员可删除任意评论</span>' : ''}
+    </h2>
+    <div id="comments"><div class="empty">加载中…</div></div>
+
+    ${user ? `
+      <form id="comment-form" style="margin-top:1.5rem;">
+        <div class="form-group">
+          <textarea id="comment-input" required placeholder="说点什么…" style="min-height:100px;"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm" id="comment-btn">发表评论</button>
+      </form>
+    ` : `
+      <p style="margin-top:1.5rem;color:var(--text-dim);font-size:0.95rem;">
+        请<a href="login.html?redirect=${redirectParam}">登录</a>后发表评论
+      </p>
+    `}
+  </div>
+`
+
+bindCardGlow($('#main'))
+
+// 点图放大
+document.querySelectorAll('.post-content img').forEach(img => {
+  img.onclick = () => {
+    const overlay = document.createElement('div')
+    overlay.style.cssText = `
+      position:fixed;inset:0;z-index:9999;
+      background:rgba(0,0,0,0.88);
+      display:flex;align-items:center;justify-content:center;
+      cursor:zoom-out;padding:2rem;
+      animation:imgFadeIn 0.25s ease;
+    `
+    const big = document.createElement('img')
+    big.src = img.src
+    big.style.cssText = `
+      max-width:95vw;max-height:95vh;
+      border-radius:12px;
+      box-shadow:0 30px 80px rgba(0,0,0,0.7);
+      animation:imgZoomIn 0.3s cubic-bezier(0.16,1,0.3,1);
+    `
+    overlay.appendChild(big)
+    overlay.onclick = () => overlay.remove()
+    document.body.appendChild(overlay)
+
+    const onEsc = (e) => {
+      if (e.key === 'Escape') {
+        overlay.remove()
+        document.removeEventListener('keydown', onEsc)
+      }
+    }
+    document.addEventListener('keydown', onEsc)
+
+    if (!document.getElementById('img-zoom-style')) {
+      const style = document.createElement('style')
+      style.id = 'img-zoom-style'
+      style.textContent = `
+        @keyframes imgFadeIn { from{opacity:0} to{opacity:1} }
+        @keyframes imgZoomIn { from{opacity:0;transform:scale(0.9)} to{opacity:1;transform:scale(1)} }
+      `
+      document.head.appendChild(style)
+    }
+  }
+})
+
+// 点赞
+const likeBtn = document.getElementById('like-btn')
+const likeCountEl = document.getElementById('like-count')
+
+likeBtn.onclick = async () => {
+  if (!user) { location.href = `login.html?redirect=${redirectParam}`; return }
+  likeBtn.disabled = true
+
+  if (liked) {
+    const { error } = await supabase.from('likes').delete()
+      .eq('post_id', id).eq('user_id', user.id)
+    if (!error) { liked = false; currentLikes = Math.max(0, currentLikes - 1) }
+  } else {
+    const { error } = await supabase.from('likes').insert({ post_id: Number(id), user_id: user.id })
+    if (!error) { liked = true; currentLikes += 1 }
+  }
+
+  likeCountEl.textContent = currentLikes
+  likeBtn.classList.toggle('liked', liked)
+  likeBtn.disabled = false
+}
+
+// 赞赏滚木
+const tipBtn = document.getElementById('tip-btn')
+
+tipBtn.onclick = () => {
+  if (!user) { location.href = `login.html?redirect=${redirectParam}`; return }
+  if (user.id === post.author_id) { alert('不能给自己赞赏'); return }
+  supabase.from('profiles').select('rolling_wood').eq('id', user.id).single()
+    .then(({ data }) => openTipModal(data?.rolling_wood ?? 0))
+}
+
+function openTipModal(balance) {
+  const mask = document.createElement('div')
+  mask.className = 'tip-modal-mask'
+  mask.innerHTML = `
+    <div class="tip-modal">
+      <h3>赞赏滚木</h3>
+      <p>给作者一点鼓励 · 余额
+        <span class="tip-balance">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="8" width="18" height="4" rx="2"/>
+            <path d="M5 12v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8"/>
+          </svg>
+          <span id="modal-balance">${balance}</span>
+        </span>
+      </p>
+      <div class="tip-options">
+        <button class="tip-option" data-amt="1">1</button>
+        <button class="tip-option selected" data-amt="5">5</button>
+        <button class="tip-option" data-amt="10">10</button>
+        <button class="tip-option" data-amt="20">20</button>
+      </div>
+      <div class="tip-custom">
+        <input type="number" id="tip-amount-input" min="1" max="100" value="5">
+        <span style="color:var(--text-dim);font-size:0.85rem;">个</span>
+      </div>
+      <div class="tip-modal-actions">
+        <button class="btn btn-ghost" id="tip-cancel">取消</button>
+        <button class="btn btn-primary" id="tip-confirm">确认赞赏</button>
+      </div>
+    </div>
+  `
+  document.body.appendChild(mask)
+
+  const input = mask.querySelector('#tip-amount-input')
+  mask.querySelectorAll('.tip-option').forEach(b => {
+    b.onclick = () => {
+      mask.querySelectorAll('.tip-option').forEach(x => x.classList.remove('selected'))
+      b.classList.add('selected')
+      input.value = b.dataset.amt
+    }
+  })
+  input.oninput = () => {
+    mask.querySelectorAll('.tip-option').forEach(x => {
+      x.classList.toggle('selected', x.dataset.amt === input.value)
+    })
+  }
+
+  mask.querySelector('#tip-cancel').onclick = () => mask.remove()
+  mask.onclick = (e) => { if (e.target === mask) mask.remove() }
+
+  mask.querySelector('#tip-confirm').onclick = async () => {
+    const amount = Number(input.value)
+    if (!amount || amount < 1) return alert('请输入有效数量')
+    if (amount > balance) return alert('滚木不够，去签到赚点吧')
+
+    const btn = mask.querySelector('#tip-confirm')
+    btn.disabled = true
+    btn.textContent = '处理中…'
+
+    const { data, error } = await supabase.rpc('tip_post', { p_post_id: Number(id), p_amount: amount })
+
+    if (error || !data?.success) {
+      alert(error?.message || data?.error || '赞赏失败')
+      btn.disabled = false
+      btn.textContent = '确认赞赏'
+      return
+    }
+
+    mask.remove()
+    tipTotal += amount
+    const tipRecvEl = document.getElementById('tip-received')
+    const tipTotalEl = document.getElementById('tip-total')
+    if (tipRecvEl) tipRecvEl.style.display = 'inline-flex'
+    if (tipTotalEl) tipTotalEl.textContent = tipTotal
+
+    const navWood = document.getElementById('nav-wood')
+    if (navWood) navWood.textContent = Math.max(0, Number(navWood.textContent) - amount)
+  }
+}
+
+// 删除帖子
+const delBtn = document.getElementById('del-btn')
+if (delBtn) {
+  delBtn.onclick = async () => {
+    const isAdminDelete = isAdmin && !isPostAuthor
+    const confirmMsg = isAdminDelete
+      ? `【管理员操作】确定删除「${post.title}」？此操作不可恢复`
+      : '确定删除？此操作不可恢复'
+    if (!confirm(confirmMsg)) return
+
+    delBtn.disabled = true
+    delBtn.textContent = '删除中…'
+
+    const { error } = await supabase.from('posts').delete().eq('id', post.id)
+    if (error) {
+      alert(error.message)
+      delBtn.disabled = false
+      delBtn.textContent = isAdminDelete ? '管理员删除' : '删除帖子'
+      return
+    }
+    location.href = 'index.html'
+  }
+}
+
+// 评论渲染
+function renderComment(c, isReply = false) {
+  const ownComment = user && user.id === c.author_id
+  const canDel = user && (ownComment || isAdmin)
+  const isAdminDelete = isAdmin && !ownComment
+  const cname = c.profiles?.username || '匿名'
+  const cavatar = c.profiles?.avatar_url
+  const replies = c._replies || []
+
+  return `
+    <div class="comment ${isReply ? 'comment-reply' : ''}" data-cid="${c.id}">
+      <div class="comment-head">
+        <div style="display:flex;align-items:center;gap:0.55rem;">
+          ${avatarLink(c.author_id, cname, cavatar, isReply ? 26 : 30)}
+          <a href="profile.html?id=${encodeURIComponent(c.author_id)}" style="color:var(--text-strong);font-weight:500;">${escapeHtml(cname)}</a>
+          <span style="color:var(--text-muted);">· ${formatTime(c.created_at)}</span>
+        </div>
+        <div style="display:flex;gap:0.4rem;align-items:center;">
+          ${user ? `<button class="btn btn-ghost btn-sm" data-reply="${c.id}">回复</button>` : ''}
+          ${canDel ? `
+            <button class="btn btn-ghost btn-sm${isAdminDelete ? ' admin-del' : ''}" data-del-comment="${c.id}">
+              ${isAdminDelete ? '管理员删除' : '删除'}
+            </button>
+          ` : ''}
+        </div>
+      </div>
+      <div class="comment-body">${escapeHtml(c.content)}</div>
+      <div class="reply-form-slot" data-slot="${c.id}"></div>
+      ${replies.length ? `
+        <div class="comment-replies">
+          ${replies.map(r => renderComment(r, true)).join('')}
+        </div>
+      ` : ''}
+    </div>
+  `
+}
+
+async function loadComments() {
+  const box = document.getElementById('comments')
+  const { data, error } = await supabase
+    .from('comments')
+    .select('id, content, created_at, author_id, parent_id, profiles!author_id(username, avatar_url)')
+    .eq('post_id', id)
+    .order('created_at', { ascending: true })
+
+  if (error) {
+    box.innerHTML = `<div class="empty">加载失败：${escapeHtml(error.message)}</div>`
+    return
+  }
+  if (!data?.length) {
+    box.innerHTML = `<div class="empty">还没有评论，来抢沙发</div>`
+    const cc = document.getElementById('comment-count')
+    if (cc) cc.textContent = ''
+    return
+  }
+
+  const roots = []
+  const map = {}
+  data.forEach(c => { c._replies = []; map[c.id] = c })
+  data.forEach(c => {
+    if (c.parent_id && map[c.parent_id]) map[c.parent_id]._replies.push(c)
+    else roots.push(c)
+  })
+
+  const cc = document.getElementById('comment-count')
+  if (cc) cc.textContent = `(${data.length})`
+
+  box.innerHTML = roots.map(c => renderComment(c, false)).join('')
+
+  box.querySelectorAll('[data-del-comment]').forEach(btn => {
+    btn.onclick = async () => {
+      const commentId = btn.dataset.delComment
+      const comment = data.find(x => x.id === Number(commentId))
+      const isOwn = user && comment && user.id === comment.author_id
+      const isAdminDelete = isAdmin && !isOwn
+
+      const confirmMsg = isAdminDelete
+        ? '【管理员操作】确定删除这条评论？其下的回复也会被删除'
+        : '删除这条评论？其下的回复也会被删除'
+      if (!confirm(confirmMsg)) return
+
+      btn.disabled = true
+      btn.textContent = '删除中…'
+
+      const { error } = await supabase.from('comments').delete().eq('id', commentId)
+      if (error) {
+        alert(error.message)
+        btn.disabled = false
+        btn.textContent = isAdminDelete ? '管理员删除' : '删除'
+        return
+      }
+      loadComments()
+    }
+  })
+
+  box.querySelectorAll('[data-reply]').forEach(btn => {
+    btn.onclick = () => {
+      const cid = btn.dataset.reply
+      const slot = box.querySelector(`[data-slot="${cid}"]`)
+      if (!slot) return
+      if (slot.innerHTML.trim()) { slot.innerHTML = ''; return }
+
+      slot.innerHTML = `
+        <div class="reply-form">
+          <textarea placeholder="回复…" class="reply-input"></textarea>
+          <div class="reply-actions">
+            <button class="btn btn-primary btn-sm" data-send>发送</button>
+            <button class="btn btn-ghost btn-sm" data-cancel>取消</button>
+          </div>
+        </div>
+      `
+      const input = slot.querySelector('.reply-input')
+      input.focus()
+
+      slot.querySelector('[data-send]').onclick = async () => {
+        const content = input.value.trim()
+        if (!content) return
+        const sendBtn = slot.querySelector('[data-send]')
+        sendBtn.disabled = true
+        sendBtn.textContent = '发送中…'
+
+        const { error } = await supabase.from('comments').insert({
+          post_id: Number(id),
+          author_id: user.id,
+          parent_id: Number(cid),
+          content
+        })
+
+        if (error) {
+          alert(error.message)
+          sendBtn.disabled = false
+          sendBtn.textContent = '发送'
+          return
+        }
+        loadComments()
+      }
+
+      slot.querySelector('[data-cancel]').onclick = () => { slot.innerHTML = '' }
+    }
+  })
+}
+loadComments()
+
+// 发表评论
+const commentForm = document.getElementById('comment-form')
+if (commentForm) {
+  commentForm.onsubmit = async (e) => {
+    e.preventDefault()
+    const btn = document.getElementById('comment-btn')
+    btn.disabled = true
+    const orig = btn.textContent
+    btn.textContent = '提交中…'
+    const content = document.getElementById('comment-input').value.trim()
+
+    const { error } = await supabase.from('comments').insert({
+      post_id: Number(id),
+      author_id: user.id,
+      content
+    })
+
+    btn.disabled = false
+    btn.textContent = orig
+
+    if (error) return alert(error.message)
+    document.getElementById('comment-input').value = ''
+    loadComments()
+  }
+}
+</script>
+</body>
+</html>

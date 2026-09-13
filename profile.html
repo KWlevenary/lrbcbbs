@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0e1a">
+<title>个人主页 · 老弱病残BBS</title>
+<link rel="stylesheet" href="assets/style.css">
+<script>
+  (function () {
+    try {
+      const saved = localStorage.getItem('theme')
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      document.documentElement.setAttribute('data-theme', saved || (prefersDark ? 'dark' : 'light'))
+    } catch (e) {}
+  })()
+</script>
+</head>
+<body>
+
+<header class="main-header">
+  <div class="header-inner">
+    <!-- 移动端汉堡 -->
+    <button class="mobile-menu-btn" id="mobile-menu-btn" type="button" aria-label="打开菜单">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+
+    <a href="index.html" class="brand nav-logo">
+      <span class="brand-name">老弱病残BBS</span>
+    </a>
+    <nav class="main-nav">
+      <a href="index.html">首页</a>
+      <a href="boards.html">全部帖子</a>
+      <a href="new.html">发帖</a>
+    </nav>
+    <div class="header-search">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input id="nav-search" type="text" placeholder="搜索帖子…" autocomplete="off">
+      <button id="search-clear" class="search-clear" type="button" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="header-actions">
+      <button class="theme-toggle" id="theme-toggle" aria-label="切换主题">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+        </svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+      <span id="nav-right" class="nav-right"></span>
+    </div>
+  </div>
+</header>
+
+<!-- ============ 移动端侧边栏 ============ -->
+<div class="mobile-sidebar-mask" id="mobile-sidebar-mask"></div>
+
+<aside class="mobile-sidebar" id="mobile-sidebar" aria-label="侧边栏">
+  <div class="mobile-sidebar-head">
+    <div class="ms-avatar" id="ms-avatar">?</div>
+    <div class="ms-user-info">
+      <div class="ms-username" id="ms-username">未登录</div>
+      <div class="ms-wood" id="ms-wood" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="8" width="18" height="4" rx="2"/>
+          <path d="M5 12v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8"/>
+        </svg>
+        <span id="ms-wood-num">0</span> 个滚木
+      </div>
+    </div>
+    <button class="ms-close" id="ms-close" type="button" aria-label="关闭菜单">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="mobile-sidebar-body">
+    <div class="ms-group-title">快捷</div>
+    <button class="ms-item ms-signin" id="ms-signin-btn" type="button">
+      <span class="ms-icon">📅</span>
+      <span class="ms-text">今日签到</span>
+      <span class="ms-hint" id="ms-signin-hint">+1 滚木</span>
+    </button>
+    <a href="new.html" class="ms-item">
+      <span class="ms-icon">✏️</span>
+      <span class="ms-text">发新帖</span>
+      <span class="ms-arrow">→</span>
+    </a>
+    <a href="boards.html" class="ms-item">
+      <span class="ms-icon">📚</span>
+      <span class="ms-text">全部帖子</span>
+      <span class="ms-arrow">→</span>
+    </a>
+
+    <div class="ms-group-title">我的</div>
+    <a href="profile.html" class="ms-item">
+      <span class="ms-icon">👤</span>
+      <span class="ms-text">个人主页</span>
+      <span class="ms-arrow">→</span>
+    </a>
+    <a href="messages.html" class="ms-item">
+      <span class="ms-icon">🔔</span>
+      <span class="ms-text">消息通知</span>
+      <span class="ms-arrow">→</span>
+    </a>
+    <a href="admin.html" class="ms-item" id="ms-admin" style="display:none;">
+      <span class="ms-icon">🛡️</span>
+      <span class="ms-text">管理面板</span>
+      <span class="ms-arrow">→</span>
+    </a>
+
+    <div class="ms-group-title">设置</div>
+    <button class="ms-item" id="ms-theme-btn" type="button">
+      <span class="ms-icon">🌙</span>
+      <span class="ms-text">色调调整</span>
+      <span class="ms-hint" id="ms-theme-hint">深色</span>
+    </button>
+
+    <div class="ms-divider"></div>
+    <button class="ms-item ms-logout" id="ms-logout" type="button" style="display:none;">
+      <span class="ms-icon">🚪</span>
+      <span class="ms-text">退出登录</span>
+    </button>
+    <a href="login.html" class="ms-item ms-login" id="ms-login" style="display:none;">
+      <span class="ms-icon">🔑</span>
+      <span class="ms-text">登录 / 注册</span>
+      <span class="ms-arrow">→</span>
+    </a>
+  </div>
+</aside>
+
+<div class="page" style="max-width:1100px;">
+  <div id="main"><div class="empty">加载中…</div></div>
+</div>
+
+<!-- 编辑昵称弹窗 -->
+<div class="tip-modal-mask" id="name-modal" style="display:none;">
+  <div class="tip-modal" style="max-width:420px;">
+    <h3>修改昵称</h3>
+    <p>2-20 个字符</p>
+    <div class="form-group">
+      <input id="new-name-input" type="text" maxlength="20" placeholder="输入新昵称">
+    </div>
+    <div class="tip-modal-actions">
+      <button class="btn btn-ghost" id="name-cancel">取消</button>
+      <button class="btn btn-primary" id="name-confirm">保存</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { supabase } from './assets/supabase.js'
+import { $, $$, escapeHtml, formatTime, renderNav, getUser, bindCardGlow, initial } from './assets/app.js'
+import imageCompression from 'https://cdn.jsdelivr.net/npm/browser-image-compression@2/dist/browser-image-compression.mjs'
+
+renderNav()
+
+const params = new URLSearchParams(location.search)
+const targetId = params.get('id')
+const targetUsername = params.get('u')
+
+const me = await getUser()
+let profile = null
+let isSelf = false
+
+// ============ 加载资料 ============
+if (targetId) {
+  const { data } = await supabase.from('profiles').select('*').eq('id', targetId).single()
+  profile = data
+} else if (targetUsername) {
+  const { data } = await supabase.from('profiles').select('*').eq('username', targetUsername).single()
+  profile = data
+} else if (me) {
+  const { data } = await supabase.from('profiles').select('*').eq('id', me.id).single()
+  profile = data
+}
+
+if (!profile) {
+  $('#main').innerHTML = `<div class="empty">${me ? '未找到该用户' : '请先登录'}</div>`
+  if (!me) setTimeout(() => location.href = 'login.html?redirect=' + encodeURIComponent(location.pathname + location.search), 800)
+  throw new Error('no profile')
+}
+
+isSelf = me && me.id === profile.id
+
+// ============ 统计数据 ============
+const [
+  { count: postCount },
+  { count: likeReceived },
+  { count: tipReceivedCount },
+  { data: tipReceivedSum }
+] = await Promise.all([
+  supabase.from('posts').select('*', { count: 'exact', head: true }).eq('author_id', profile.id),
+  supabase.from('likes').select('post_id, posts!inner(author_id)', { count: 'exact', head: true }).eq('posts.author_id', profile.id),
+  supabase.from('tips').select('*', { count: 'exact', head: true }).eq('to_user', profile.id),
+  supabase.from('tips').select('amount').eq('to_user', profile.id)
+])
+
+const receivedWood = (tipReceivedSum || []).reduce((s, t) => s + (t.amount || 0), 0)
+
+// ============ 头像 HTML ============
+function avatarHtml(p, size = 96) {
+  const cls = size >= 80 ? 'profile-avatar-lg' : 'avatar'
+  if (p.avatar_url) {
+    return `<img src="${escapeHtml(p.avatar_url)}" alt="${escapeHtml(p.username)}" class="${cls}" style="object-fit:cover;">`
+  }
+  return `<div class="${cls}">${escapeHtml(initial(p.username))}</div>`
+}
+
+// ============ 渲染页面 ============
+$('#main').innerHTML = `
+  <div class="card profile-hero">
+    <div class="profile-avatar-wrap ${isSelf ? 'editable' : ''}" id="avatar-wrap">
+      ${avatarHtml(profile, 96)}
+      ${isSelf ? `
+        <div class="avatar-edit-overlay">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+        </div>
+        <input type="file" id="avatar-input" accept="image/*" style="display:none;">
+      ` : ''}
+    </div>
+
+    <div class="profile-info">
+      <div class="profile-name-row">
+        <div class="profile-name" id="profile-name">${escapeHtml(profile.username)}</div>
+        ${isSelf ? `
+          <button class="icon-btn" id="edit-name-btn" title="修改昵称">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+        ` : ''}
+      </div>
+      <div class="profile-since">注册于 ${formatTime(profile.created_at)}${isSelf ? ' · 这是你自己的主页' : ''}</div>
+
+      <div class="profile-stats">
+        <div class="profile-stat">
+          <div class="profile-stat-val">${profile.rolling_wood ?? 0}</div>
+          <div class="profile-stat-lbl">滚木余额</div>
+        </div>
+        <div class="profile-stat">
+          <div class="profile-stat-val">${postCount ?? 0}</div>
+          <div class="profile-stat-lbl">发布帖子</div>
+        </div>
+        <div class="profile-stat">
+          <div class="profile-stat-val">${receivedWood}</div>
+          <div class="profile-stat-lbl">收到滚木</div>
+        </div>
+        <div class="profile-stat">
+          <div class="profile-stat-val">${likeReceived ?? 0}</div>
+          <div class="profile-stat-lbl">收到点赞</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="profile-tabs">
+    <button class="profile-tab active" data-tab="posts">${isSelf ? '我的' : 'TA 的'}帖子</button>
+    ${isSelf ? `
+      <button class="profile-tab" data-tab="tips">滚木收支</button>
+      <button class="profile-tab" data-tab="checkins">签到记录</button>
+    ` : `
+      <button class="profile-tab" data-tab="tips">收到的滚木</button>
+    `}
+  </div>
+
+  <div id="content"><div class="empty">加载中…</div></div>
+`
+
+bindCardGlow($('#main'))
+
+// ============ 头像上传 ============
+const avatarWrap = document.getElementById('avatar-wrap')
+const avatarInput = document.getElementById('avatar-input')
+
+if (isSelf && avatarInput) {
+  avatarWrap.onclick = () => avatarInput.click()
+
+  avatarInput.onchange = async () => {
+    const file = avatarInput.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) return alert('请选择图片文件')
+
+    try {
+      const compressed = await imageCompression(file, {
+        maxWidthOrHeight: 400,
+        useWebWorker: true,
+        initialQuality: 0.85,
+        fileType: 'image/webp',
+        maxSizeMB: 0.3
+      })
+
+      const path = `${profile.id}/${Date.now()}.webp`
+
+      const { error: upErr } = await supabase.storage
+        .from('avatars')
+        .upload(path, compressed, { contentType: 'image/webp', upsert: false })
+
+      if (upErr) throw upErr
+
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
+      const url = urlData.publicUrl
+
+      const { error: dbErr } = await supabase
+        .from('profiles')
+        .update({ avatar_url: url })
+        .eq('id', profile.id)
+
+      if (dbErr) throw dbErr
+
+      const oldUrl = profile.avatar_url
+      if (oldUrl && oldUrl.includes('/avatars/')) {
+        const oldPath = oldUrl.split('/avatars/')[1]
+        if (oldPath) await supabase.storage.from('avatars').remove([oldPath])
+      }
+
+      profile.avatar_url = url
+      avatarWrap.innerHTML = `
+        <img src="${escapeHtml(url)}" alt="${escapeHtml(profile.username)}" class="profile-avatar-lg" style="object-fit:cover;">
+        <div class="avatar-edit-overlay">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+        </div>
+      `
+      alert('头像已更新！')
+    } catch (err) {
+      alert('上传失败：' + err.message)
+    }
+  }
+}
+
+// ============ 昵称编辑 ============
+const nameModal = document.getElementById('name-modal')
+const newNameInput = document.getElementById('new-name-input')
+
+const editNameBtn = document.getElementById('edit-name-btn')
+if (editNameBtn) {
+  editNameBtn.onclick = () => {
+    newNameInput.value = profile.username
+    nameModal.style.display = 'flex'
+    setTimeout(() => newNameInput.focus(), 100)
+  }
+}
+
+if (nameModal) {
+  nameModal.onclick = (e) => { if (e.target === nameModal) nameModal.style.display = 'none' }
+  document.getElementById('name-cancel').onclick = () => nameModal.style.display = 'none'
+
+  document.getElementById('name-confirm').onclick = async () => {
+    const newName = newNameInput.value.trim()
+    if (newName.length < 2 || newName.length > 20) return alert('昵称需要 2-20 个字符')
+    if (newName === profile.username) return nameModal.style.display = 'none'
+
+    const btn = document.getElementById('name-confirm')
+    btn.disabled = true
+    btn.textContent = '保存中…'
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ username: newName })
+      .eq('id', profile.id)
+
+    btn.disabled = false
+    btn.textContent = '保存'
+
+    if (error) {
+      if (error.code === '23505') alert('该昵称已被占用')
+      else alert(error.message)
+      return
+    }
+
+    profile.username = newName
+    document.getElementById('profile-name').textContent = newName
+    nameModal.style.display = 'none'
+    alert('昵称已更新！')
+  }
+}
+
+// ============ Tab 切换 ============
+$$('.profile-tab').forEach(btn => {
+  btn.onclick = () => {
+    $$('.profile-tab').forEach(b => b.classList.remove('active'))
+    btn.classList.add('active')
+    loadTab(btn.dataset.tab)
+  }
+})
+
+async function loadTab(t) {
+  const box = $('#content')
+  box.innerHTML = '<div class="empty">加载中…</div>'
+
+  if (t === 'posts') {
+    const { data } = await supabase
+      .from('posts')
+      .select('id, title, content, created_at, comments(count), likes(count), tips(count)')
+      .eq('author_id', profile.id)
+      .order('created_at', { ascending: false })
+
+    if (!data?.length) {
+      box.innerHTML = `<div class="empty">${isSelf ? '还没有发过帖子，' : ''}${isSelf ? '<a href="new.html">去发一篇</a>' : 'TA 还没有发过帖子'}</div>`
+      return
+    }
+
+    box.innerHTML = data.map((p, i) => {
+      const raw = String(p.content || '')
+        .replace(/!\[[^\]]*\]\([^)]+\)/g, '[图片]')
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+        .replace(/[#*>`~_\-]/g, '')
+        .replace(/\n+/g, ' ').trim()
+      const summary = raw.slice(0, 120) + (raw.length > 120 ? '…' : '')
+      return `
+        <div class="card post-card" style="animation-delay:${Math.min(i * 55, 400)}ms;">
+          <a href="post.html?id=${p.id}" class="post-link"></a>
+          <h3>${escapeHtml(p.title)}</h3>
+          <div class="card-body">${escapeHtml(summary)}</div>
+          <div class="card-foot">
+            <span class="stat">${formatTime(p.created_at)}</span>
+            <span class="stat">💬 ${p.comments?.[0]?.count ?? 0}</span>
+            <span class="stat">❤️ ${p.likes?.[0]?.count ?? 0}</span>
+            <span class="stat">🪵 ${p.tips?.[0]?.count ?? 0}</span>
+            <span class="stat" style="color:var(--primary-light);margin-left:auto;">查看 →</span>
+          </div>
+        </div>
+      `
+    }).join('')
+    bindCardGlow(box)
+  }
+
+  if (t === 'tips') {
+    if (isSelf) {
+      const [{ data: received }, { data: sent }] = await Promise.all([
+        supabase.from('tips')
+          .select('id, amount, created_at, posts!inner(id, title), from_user, profiles!tips_from_user_fkey(username)')
+          .eq('to_user', profile.id)
+          .order('created_at', { ascending: false }).limit(50),
+        supabase.from('tips')
+          .select('id, amount, created_at, posts!inner(id, title), to_user, profiles!tips_to_user_fkey(username)')
+          .eq('from_user', profile.id)
+          .order('created_at', { ascending: false }).limit(50)
+      ])
+
+      const all = [
+        ...(received || []).map(r => ({ ...r, type: 'in', other: r.profiles?.username || '匿名' })),
+        ...(sent || []).map(s => ({ ...s, type: 'out', other: s.profiles?.username || '匿名' }))
+      ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+
+      if (!all.length) {
+        box.innerHTML = '<div class="empty">还没有滚木收支记录</div>'
+        return
+      }
+
+      box.innerHTML = `
+        <div class="card" style="padding:1.5rem;">
+          ${all.map(t => `
+            <div class="tip-item">
+              <div class="tip-info">
+                <div class="tip-title">
+                  <a href="post.html?id=${t.posts?.id}">${escapeHtml(t.posts?.title || '（已删除）')}</a>
+                </div>
+                <div class="tip-meta">
+                  ${t.type === 'in' ? `来自 ${escapeHtml(t.other)}` : `赠予 ${escapeHtml(t.other)}`}
+                  · ${formatTime(t.created_at)}
+                </div>
+              </div>
+              <span class="tip-amount ${t.type}">
+                ${t.type === 'in' ? '+' : '-'}${t.amount}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="8" width="18" height="4" rx="2"/>
+                  <path d="M5 12v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8"/>
+                </svg>
+              </span>
+            </div>
+          `).join('')}
+        </div>
+      `
+    } else {
+      const { data } = await supabase
+        .from('tips')
+        .select('id, amount, created_at, posts!inner(id, title), profiles!tips_from_user_fkey(username)')
+        .eq('to_user', profile.id)
+        .order('created_at', { ascending: false }).limit(50)
+
+      if (!data?.length) {
+        box.innerHTML = '<div class="empty">还没有收到滚木</div>'
+        return
+      }
+
+      box.innerHTML = `
+        <div class="card" style="padding:1.5rem;">
+          ${data.map(t => `
+            <div class="tip-item">
+              <div class="tip-info">
+                <div class="tip-title">
+                  <a href="post.html?id=${t.posts?.id}">${escapeHtml(t.posts?.title || '（已删除）')}</a>
+                </div>
+                <div class="tip-meta">
+                  来自 ${escapeHtml(t.profiles?.username || '匿名')} · ${formatTime(t.created_at)}
+                </div>
+              </div>
+              <span class="tip-amount in">
+                +${t.amount}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="8" width="18" height="4" rx="2"/>
+                  <path d="M5 12v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8"/>
+                </svg>
+              </span>
+            </div>
+          `).join('')}
+        </div>
+      `
+    }
+  }
+
+  if (t === 'checkins' && isSelf) {
+    const { data } = await supabase
+      .from('checkins')
+      .select('date')
+      .eq('user_id', profile.id)
+      .order('date', { ascending: false })
+      .limit(60)
+
+    if (!data?.length) {
+      box.innerHTML = '<div class="empty">还没有签到记录，去首页签到吧</div>'
+      return
+    }
+
+    box.innerHTML = `
+      <div class="card" style="padding:1.5rem;">
+        <div style="margin-bottom:1rem;color:var(--text-dim);font-size:0.9rem;">
+          共签到 <strong style="color:var(--primary-light);">${data.length}</strong> 天
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+          ${data.map(c => `
+            <span style="display:inline-flex;align-items:center;gap:0.3rem;padding:0.35rem 0.8rem;border-radius:999px;background:var(--card-bg-hover);border:1px solid var(--border);font-size:0.82rem;color:var(--text-dim);">
+              📅 ${c.date}
+            </span>
+          `).join('')}
+        </div>
+      </div>
+    `
+  }
+}
+
+loadTab('posts')
+
+// ============================================================
+// 移动端侧边栏
+// ============================================================
+function initMobileSidebar() {
+  const btn = document.getElementById('mobile-menu-btn')
+  const sidebar = document.getElementById('mobile-sidebar')
+  const mask = document.getElementById('mobile-sidebar-mask')
+  const closeBtn = document.getElementById('ms-close')
+  if (!btn || !sidebar || !mask) return
+
+  const open = () => {
+    sidebar.classList.add('open')
+    mask.classList.add('open')
+    document.body.style.overflow = 'hidden'
+  }
+  const close = () => {
+    sidebar.classList.remove('open')
+    mask.classList.remove('open')
+    document.body.style.overflow = ''
+  }
+
+  btn.onclick = open
+  mask.onclick = close
+  if (closeBtn) closeBtn.onclick = close
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && sidebar.classList.contains('open')) close()
+  })
+}
+
+async function fillSidebarUser() {
+  const { data: { user } } = await supabase.auth.getUser()
+  const avatarEl = document.getElementById('ms-avatar')
+  const usernameEl = document.getElementById('ms-username')
+  const woodEl = document.getElementById('ms-wood')
+  const woodNumEl = document.getElementById('ms-wood-num')
+  const adminEl = document.getElementById('ms-admin')
+  const logoutEl = document.getElementById('ms-logout')
+  const loginEl = document.getElementById('ms-login')
+
+  if (user) {
+    const { data: p } = await supabase
+      .from('profiles').select('username, role, rolling_wood, avatar_url')
+      .eq('id', user.id).single()
+
+    const name = p?.username || user.email || '用户'
+    if (avatarEl) {
+      if (p?.avatar_url) {
+        avatarEl.innerHTML = `<img src="${escapeHtml(p.avatar_url)}" alt="${escapeHtml(name)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+      } else {
+        avatarEl.textContent = name.trim()[0].toUpperCase()
+      }
+    }
+    if (usernameEl) usernameEl.textContent = name
+    if (woodEl) woodEl.style.display = 'inline-flex'
+    if (woodNumEl) woodNumEl.textContent = p?.rolling_wood ?? 0
+    if (p?.role === 'admin' && adminEl) adminEl.style.display = 'flex'
+    if (logoutEl) logoutEl.style.display = 'flex'
+    if (loginEl) loginEl.style.display = 'none'
+  } else {
+    if (avatarEl) avatarEl.textContent = '?'
+    if (usernameEl) usernameEl.textContent = '未登录'
+    if (woodEl) woodEl.style.display = 'none'
+    if (adminEl) adminEl.style.display = 'none'
+    if (logoutEl) logoutEl.style.display = 'none'
+    if (loginEl) loginEl.style.display = 'flex'
+  }
+}
+
+function initSidebarTheme() {
+  const btn = document.getElementById('ms-theme-btn')
+  const hint = document.getElementById('ms-theme-hint')
+  if (!btn) return
+  const updateHint = () => {
+    const theme = document.documentElement.getAttribute('data-theme') || 'dark'
+    if (hint) hint.textContent = theme === 'dark' ? '深色' : '浅色'
+  }
+  updateHint()
+  btn.onclick = () => {
+    const html = document.documentElement
+    const current = html.getAttribute('data-theme') || 'dark'
+    const next = current === 'dark' ? 'light' : 'dark'
+    html.classList.add('theme-transitioning')
+    html.setAttribute('data-theme', next)
+    try { localStorage.setItem('theme', next) } catch (e) {}
+    updateHint()
+    setTimeout(() => html.classList.remove('theme-transitioning'), 600)
+  }
+}
+
+async function initSidebarSignin() {
+  const btn = document.getElementById('ms-signin-btn')
+  const hint = document.getElementById('ms-signin-hint')
+  if (!btn) return
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    if (hint) hint.textContent = '需登录'
+    btn.onclick = () => location.href = 'login.html'
+    return
+  }
+
+  const today = new Date().toISOString().slice(0, 10)
+  const { data: checkin } = await supabase
+    .from('checkins').select('date')
+    .eq('user_id', user.id).eq('date', today).maybeSingle()
+
+  if (checkin) {
+    btn.disabled = true
+    btn.classList.add('signed')
+    if (hint) hint.textContent = '已签到 ✓'
+  }
+
+  btn.onclick = async () => {
+    if (btn.disabled) return
+    btn.disabled = true
+    if (hint) hint.textContent = '签到中…'
+
+    const { data, error } = await supabase.rpc('daily_checkin')
+    if (error || !data?.success) {
+      if (hint) hint.textContent = error?.message || data?.error || '失败'
+      btn.disabled = false
+      return
+    }
+    btn.classList.add('signed')
+    if (hint) hint.textContent = '+1 滚木 ✓'
+    const woodNum = document.getElementById('ms-wood-num')
+    if (woodNum) woodNum.textContent = Number(woodNum.textContent) + 1
+    const navWood = document.getElementById('nav-wood')
+    if (navWood) navWood.textContent = Number(navWood.textContent) + 1
+  }
+}
+
+function initSidebarLogout() {
+  const btn = document.getElementById('ms-logout')
+  if (!btn) return
+  btn.onclick = async () => {
+    if (!confirm('确定退出登录？')) return
+    await supabase.auth.signOut()
+    location.href = 'index.html'
+  }
+}
+
+initMobileSidebar()
+fillSidebarUser()
+initSidebarTheme()
+initSidebarSignin()
+initSidebarLogout()
+</script>
+</body>
+</html>
