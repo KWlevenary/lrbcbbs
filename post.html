@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#0a0e1a">
 <title>详情 · 老弱病残BBS</title>
 <link rel="stylesheet" href="assets/style.css">
+<script src="assets/lib/supabase-umd.js"></script>
 <script>
   (function () {
     try {
@@ -65,8 +66,8 @@ import { supabase } from './assets/supabase.js'
 import {
   $, escapeHtml, formatTime, renderNav, getUser, bindCardGlow, initial
 } from './assets/app.js'
-import { marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js'
-import DOMPurify from 'https://cdn.jsdelivr.net/npm/dompurify/dist/purify.es.mjs'
+import { marked } from './assets/lib/marked.js'
+import DOMPurify from './assets/lib/purify.js'
 
 marked.setOptions({ breaks: true, gfm: true })
 
@@ -76,7 +77,6 @@ function esc(s) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 }
 
-// Markdown 渲染（含链接卡片）
 function renderMd(text) {
   if (!text) return ''
 
@@ -118,7 +118,6 @@ function renderMd(text) {
   return html
 }
 
-// 头像 HTML 生成（含链接）
 function avatarLink(authorId, name, avatarUrl, size = 30) {
   const inner = avatarUrl
     ? `<img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(name)}" class="avatar avatar-img" style="width:${size}px;height:${size}px;">`
@@ -136,7 +135,6 @@ if (!id) {
 
 const user = await getUser()
 
-// 加载帖子（含作者头像）
 const { data: post, error } = await supabase
   .from('posts')
   .select('id, title, content, created_at, author_id, tags_major, tags_minor, profiles!author_id(username, avatar_url)')
@@ -157,7 +155,6 @@ const authorAvatar = post.profiles?.avatar_url
 const isPostAuthor = user && user.id === post.author_id
 const canDeletePost = user && (isPostAuthor || isAdmin)
 
-// 点赞状态
 const { count: likeCount } = await supabase
   .from('likes').select('*', { count: 'exact', head: true }).eq('post_id', id)
 
@@ -170,7 +167,6 @@ if (user) {
 }
 let currentLikes = likeCount ?? 0
 
-// 滚木总数
 const { data: tipSum } = await supabase
   .from('tips').select('amount').eq('post_id', id)
 let tipTotal = (tipSum || []).reduce((s, t) => s + (t.amount || 0), 0)
@@ -265,7 +261,6 @@ $('#main').innerHTML = `
 
 bindCardGlow($('#main'))
 
-// 点图放大
 document.querySelectorAll('.post-content img').forEach(img => {
   img.onclick = () => {
     const overlay = document.createElement('div')
@@ -308,7 +303,6 @@ document.querySelectorAll('.post-content img').forEach(img => {
   }
 })
 
-// 点赞
 const likeBtn = document.getElementById('like-btn')
 const likeCountEl = document.getElementById('like-count')
 
@@ -330,7 +324,6 @@ likeBtn.onclick = async () => {
   likeBtn.disabled = false
 }
 
-// 赞赏滚木
 const tipBtn = document.getElementById('tip-btn')
 
 tipBtn.onclick = () => {
@@ -420,7 +413,6 @@ function openTipModal(balance) {
   }
 }
 
-// 删除帖子
 const delBtn = document.getElementById('del-btn')
 if (delBtn) {
   delBtn.onclick = async () => {
@@ -444,7 +436,6 @@ if (delBtn) {
   }
 }
 
-// 评论渲染
 function renderComment(c, isReply = false) {
   const ownComment = user && user.id === c.author_id
   const canDel = user && (ownComment || isAdmin)
@@ -587,7 +578,6 @@ async function loadComments() {
 }
 loadComments()
 
-// 发表评论
 const commentForm = document.getElementById('comment-form')
 if (commentForm) {
   commentForm.onsubmit = async (e) => {

@@ -144,7 +144,13 @@ export async function renderNav() {
 
   const navRight = document.getElementById('nav-right')
   if (!navRight) return
-  const user = await getUser()
+
+  let user = null
+  try {
+    user = await getUser()
+  } catch (err) {
+    console.warn('获取用户失败：', err)
+  }
 
   if (user) {
     const profile = await getProfile(user.id)
@@ -316,7 +322,7 @@ export async function loadStats() {
   }
 }
 
-// ============ 帖子列表（头像可点） ============
+// ============ 帖子列表 ============
 export async function loadPosts(containerId, keyword = '') {
   const container = document.getElementById(containerId)
   if (!container) return
@@ -416,7 +422,7 @@ export async function loadPosts(containerId, keyword = '') {
   bindCardGlow(container)
 }
 
-// ============ 搜索（跳转新页面） ============
+// ============ 搜索 ============
 export function initSearch() {
   const input = document.getElementById('nav-search')
   const clearBtn = document.getElementById('search-clear')

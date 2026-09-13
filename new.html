@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#0a0e1a">
 <title>发帖 · 老弱病残BBS</title>
 <link rel="stylesheet" href="assets/style.css">
+<script src="assets/lib/supabase-umd.js"></script>
 <script>
   (function () {
     try {
@@ -92,7 +93,7 @@
 
       <div class="form-group">
         <label>小标签（可选，最多 5 个，用逗号分隔）</label>
-        <input id="tags-minor" type="text" placeholder="埃及吧填啥填啥" maxlength="100">
+        <input id="tags-minor" type="text" placeholder="如：求助, 教程, 讨论" maxlength="100">
       </div>
 
       <div class="form-group">
@@ -126,7 +127,7 @@
   </div>
 </div>
 
-<!-- ============ 链接卡片弹窗 ============ -->
+<!-- 链接卡片弹窗 -->
 <div class="lc-modal-mask" id="lc-modal" style="display:none;">
   <div class="lc-modal">
     <h3 class="lc-modal-title">🔗 插入链接卡片</h3>
@@ -190,9 +191,9 @@
 <script type="module">
 import { supabase } from './assets/supabase.js'
 import { $, $$, showMsg, renderNav, requireLogin } from './assets/app.js'
-import { marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js'
-import DOMPurify from 'https://cdn.jsdelivr.net/npm/dompurify/dist/purify.es.mjs'
-import imageCompression from 'https://cdn.jsdelivr.net/npm/browser-image-compression@2/dist/browser-image-compression.mjs'
+import { marked } from './assets/lib/marked.js'
+import DOMPurify from './assets/lib/purify.js'
+import imageCompression from './assets/lib/image-compression.js'
 
 renderNav()
 const user = await requireLogin()
@@ -205,14 +206,12 @@ const previewEl = $('#preview')
 const statusEl = $('#upload-status')
 const boardInput = $('#tags-major')
 
-// ============ HTML 转义 ============
 function esc(s) {
   return String(s ?? '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 }
 
-// ============ Markdown 渲染（含链接卡片） ============
 function renderMd(text) {
   if (!text) return ''
 
@@ -254,7 +253,6 @@ function renderMd(text) {
   return html
 }
 
-// ============ 板块选择 ============
 const urlTag = new URLSearchParams(location.search).get('tag')
 const selector = document.getElementById('board-selector')
 
@@ -273,7 +271,6 @@ const validTags = ['游戏', '工具', '软件', '其他']
 if (urlTag && validTags.includes(urlTag)) selectBoard(urlTag)
 else selectBoard('其他')
 
-// ============ 状态提示 ============
 function setStatus(text, type = 'info') {
   if (!text) { statusEl.style.display = 'none'; return }
   statusEl.style.display = 'block'
@@ -281,7 +278,6 @@ function setStatus(text, type = 'info') {
   statusEl.className = 'upload-status ' + type
 }
 
-// ============ 工具栏：插入语法 ============
 function insertSyntax(before, after = '', placeholder = '') {
   const ta = contentEl
   const start = ta.selectionStart
@@ -316,7 +312,6 @@ $$('.editor-toolbar [data-insert]').forEach(btn => {
   btn.onclick = () => { const fn = INSERTS[btn.dataset.insert]; if (fn) fn() }
 })
 
-// ============ 链接卡片弹窗 ============
 const lcModal = document.getElementById('lc-modal')
 const lcUrlInput = document.getElementById('lc-url')
 const lcTitleInput = document.getElementById('lc-title')
@@ -407,7 +402,6 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && lcModal.style.display === 'flex') closeLinkCardModal()
 })
 
-// ============ 编辑/预览切换 ============
 $$('.tab-btn').forEach(btn => {
   btn.onclick = () => {
     $$('.tab-btn').forEach(x => x.classList.remove('active'))
@@ -424,7 +418,6 @@ $$('.tab-btn').forEach(btn => {
   }
 })
 
-// ============ 图片压缩上传 ============
 const BUCKET = 'post-images'
 const MAX_SIZE = 10 * 1024 * 1024
 const COMPRESS_THRESHOLD = 500 * 1024
@@ -537,7 +530,6 @@ contentEl.addEventListener('drop', async (e) => {
   for (const file of files) await uploadAndInsert(file)
 })
 
-// ============ 提交 ============
 $('#form').onsubmit = async (e) => {
   e.preventDefault()
   const majorTag = boardInput.value

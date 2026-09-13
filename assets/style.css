@@ -2564,6 +2564,7 @@ footer {
   }
   html { scroll-behavior: auto; }
 }
+
 /* ============================================================
    分页组件
    ============================================================ */
@@ -2741,11 +2742,11 @@ footer {
   .pagination { gap: 0.3rem; padding: 0.7rem 0.5rem; }
   .page-btn { min-width: 36px; height: 36px; padding: 0 0.6rem; font-size: 0.85rem; }
 }
+
 /* ============================================================
    移动端：汉堡按钮 + 侧边栏
    ============================================================ */
 
-/* 汉堡按钮（默认隐藏） */
 .mobile-menu-btn {
   display: none;
   width: 40px;
@@ -2765,7 +2766,6 @@ footer {
 .mobile-menu-btn:active { transform: scale(0.94); }
 .mobile-menu-btn svg { width: 20px; height: 20px; stroke: currentColor; }
 
-/* 侧边栏遮罩 */
 .mobile-sidebar-mask {
   position: fixed;
   inset: 0;
@@ -2782,7 +2782,6 @@ footer {
   visibility: visible;
 }
 
-/* 侧边栏 */
 .mobile-sidebar {
   position: fixed;
   top: 0;
@@ -2804,7 +2803,6 @@ footer {
 }
 .mobile-sidebar.open { transform: translateX(0); }
 
-/* 侧边栏头部：用户信息 */
 .mobile-sidebar-head {
   display: flex;
   align-items: center;
@@ -2885,7 +2883,6 @@ footer {
 }
 .ms-close svg { width: 16px; height: 16px; stroke: currentColor; }
 
-/* 侧边栏内容 */
 .mobile-sidebar-body {
   flex: 1;
   overflow-y: auto;
@@ -2961,7 +2958,6 @@ footer {
   color: var(--primary-light);
 }
 
-/* 签到按钮状态 */
 .ms-signin.signed .ms-hint {
   color: #86efac;
   background: rgba(34, 197, 94, 0.12);
@@ -2977,7 +2973,6 @@ footer {
   border-color: transparent;
 }
 
-/* 退出 */
 .ms-logout { color: #f87171; }
 .ms-logout:hover {
   background: rgba(239, 68, 68, 0.08);
@@ -2985,7 +2980,6 @@ footer {
   color: #f87171;
 }
 
-/* 分隔线 */
 .ms-divider {
   height: 1px;
   background: var(--border);
@@ -2996,10 +2990,8 @@ footer {
    移动端媒体查询：隐藏统计球、侧栏，显示汉堡
    ============================================================ */
 @media (max-width: 800px) {
-  /* 隐藏统计面板 */
   .stats-panel { display: none; }
 
-  /* 三栏布局收成单栏，隐藏左右侧栏 */
   .layout {
     grid-template-columns: 1fr;
     gap: 0;
@@ -3007,7 +2999,6 @@ footer {
   .col-left,
   .col-right { display: none; }
 
-  /* 顶部 header 精简 */
   .header-inner {
     padding: 0.7rem 1rem;
     gap: 0.6rem;
@@ -3027,10 +3018,8 @@ footer {
     text-overflow: ellipsis;
   }
 
-  /* 导航隐藏 */
   .main-nav { display: none; }
 
-  /* 搜索框拉满中间空间 */
   .header-search {
     flex: 1 1 auto;
     width: auto;
@@ -3042,15 +3031,12 @@ footer {
   .header-search:focus-within { width: auto; }
   .header-search input { font-size: 0.88rem; }
 
-  /* 桌面端的主题按钮和用户菜单隐藏（已进侧边栏） */
   .header-actions { display: none; }
 
-  /* 页面内边距收紧 */
   .page {
     padding: 1rem 0.9rem 2rem;
   }
 
-  /* 板块卡片在移动端更紧凑 */
   .boards-home-grid { gap: 0.8rem; }
   .board-home-card { padding: 1.1rem 1.2rem; border-radius: 16px; }
   .board-home-icon { width: 48px; height: 48px; font-size: 1.4rem; border-radius: 14px; }
@@ -3059,12 +3045,10 @@ footer {
   .board-home-count-num { font-size: 1.2rem; }
   .board-home-post-title { font-size: 0.85rem; }
 
-  /* 页头紧凑 */
   .page-section-head { margin-bottom: 0.8rem; }
   .page-section-head h2 { font-size: 1.05rem; }
   .page-section-head .sub { font-size: 0.75rem; }
 
-  /* 底部 footer 紧凑 */
   footer {
     padding: 1.5rem 1rem;
     font-size: 0.78rem;
@@ -3072,7 +3056,6 @@ footer {
   }
 }
 
-/* 超窄屏 */
 @media (max-width: 360px) {
   .mobile-sidebar { width: 88vw; }
   .header-inner { padding: 0.6rem 0.8rem; gap: 0.5rem; }
@@ -3080,7 +3063,6 @@ footer {
   .header-search { height: 34px; padding: 0 0.6rem; }
 }
 
-/* 桌面端隐藏侧边栏相关（保险） */
 @media (min-width: 801px) {
   .mobile-sidebar,
   .mobile-sidebar-mask,
@@ -3088,11 +3070,10 @@ footer {
     display: none !important;
   }
 }
-/* ============================================================
-   手机端修复：顶部保留搜索框 + 侧边栏加全部帖子入口
-   ============================================================ */
 
-/* 覆盖旧的隐藏规则，让搜索框在手机上显示 */
+/* ============================================================
+   手机端修复：顶部保留搜索框
+   ============================================================ */
 @media (max-width: 800px) {
   .header-search {
     display: flex !important;
@@ -3107,7 +3088,6 @@ footer {
   .header-search input::placeholder { font-size: 0.85rem; }
 }
 
-/* 超窄屏进一步压缩，不隐藏 */
 @media (max-width: 520px) {
   .header-search {
     display: flex !important;
@@ -3125,6 +3105,7 @@ footer {
   .brand-name { max-width: 72px; }
   .header-search input::placeholder { color: transparent; }
 }
+
 /* ============================================================
    头像链接 & 头像图片
    ============================================================ */
@@ -3253,12 +3234,11 @@ footer {
   white-space: nowrap;
   color: inherit;
 }
+
 /* ============================================================
    个人主页 — 移动端适配
    ============================================================ */
-
 @media (max-width: 800px) {
-  /* 个人资料卡：垂直布局 */
   .profile-hero {
     flex-direction: column;
     align-items: center;
@@ -3291,7 +3271,6 @@ footer {
     margin-bottom: 0.9rem;
   }
 
-  /* 统计：两列网格 */
   .profile-stats {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -3313,7 +3292,6 @@ footer {
     margin-top: 0.2rem;
   }
 
-  /* Tab：可横向滚动 */
   .profile-tabs {
     padding: 0.35rem;
     gap: 0.25rem;
@@ -3328,7 +3306,6 @@ footer {
     flex-shrink: 0;
   }
 
-  /* 滚木收支条目：纵向堆叠 */
   .tip-item {
     flex-direction: column;
     align-items: flex-start;
@@ -3404,7 +3381,6 @@ footer {
     font-size: 0.92rem;
   }
 
-  /* 头像编辑按钮在移动端常显（因为没有 hover） */
   .profile-avatar-wrap.editable .avatar-edit-overlay {
     opacity: 1;
     background: linear-gradient(to top, rgba(0,0,0,0.55), transparent 60%);
@@ -3417,7 +3393,6 @@ footer {
     right: 6px;
   }
 
-  /* 昵称编辑图标按钮放大一点，好点 */
   .icon-btn {
     width: 34px;
     height: 34px;
@@ -3427,6 +3402,7 @@ footer {
     height: 16px;
   }
 }
+
 /* ============================================================
    登录 / 注册页
    ============================================================ */
@@ -3466,6 +3442,20 @@ footer {
 .auth-switch a {
   font-weight: 600;
   margin-left: 0.2rem;
+}
+
+/* ============ 忘记密码链接 ============ */
+.forgot-link-wrap {
+  text-align: center;
+  margin-top: 0.8rem;
+  font-size: 0.86rem;
+}
+.forgot-link-wrap a {
+  color: var(--text-muted);
+  transition: color 0.25s;
+}
+.forgot-link-wrap a:hover {
+  color: var(--primary-light);
 }
 
 /* ============================================================
@@ -3570,9 +3560,6 @@ footer {
   transition: color 0.25s;
 }
 
-/* ============================================================
-   移动端
-   ============================================================ */
 @media (max-width: 520px) {
   .auth-card {
     padding: 1.6rem 1.3rem;
@@ -3590,4 +3577,558 @@ footer {
   .verify-desc { font-size: 0.88rem; }
   .verify-tips { padding: 0.85rem 1rem; }
   .verify-tip-item { font-size: 0.8rem; }
+}
+
+/* ============================================================
+   OTP 验证码输入框（注册 + 重置密码共用）
+   ============================================================ */
+.otp-input-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 1.5rem 0;
+}
+
+#otp-input,
+#reset-otp-input {
+  width: 260px;
+  padding: 1rem;
+  font-size: 2.5rem;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: 12px;
+  font-family: 'Courier New', ui-monospace, monospace;
+  background: var(--input-bg);
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  color: var(--text-strong);
+  outline: none;
+  transition: all 0.3s var(--ease);
+}
+
+#otp-input::placeholder,
+#reset-otp-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.3;
+  letter-spacing: 8px;
+}
+
+#otp-input:focus,
+#reset-otp-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.15);
+  background: var(--card-bg-hover);
+}
+
+@media (max-width: 520px) {
+  #otp-input,
+  #reset-otp-input {
+    width: 220px;
+    font-size: 2rem;
+    padding: 0.8rem;
+    letter-spacing: 10px;
+  }
+}
+
+/* ============================================================
+   移动端 App 化终极修复版（覆盖所有旧规则）
+   ============================================================ */
+
+.mobile-top-nav, .mobile-bottom-bar {
+  display: none;
+}
+
+@media (max-width: 800px) {
+
+  /* ========== 顶部板块导航 ========== */
+  .mobile-top-nav {
+    display: flex !important;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    width: 100%;
+    background: var(--bg-soft) !important;
+    border-bottom: 1px solid var(--border);
+    padding: 0 10px;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .mobile-top-nav::-webkit-scrollbar { display: none; }
+  .mobile-top-nav a {
+    display: inline-block;
+    flex-shrink: 0;
+    padding: 14px 16px;
+    color: var(--text-dim);
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .mobile-top-nav a.active, .mobile-top-nav a:hover {
+    color: var(--primary-light);
+    border-bottom: 2px solid var(--primary-light);
+  }
+  .mobile-signin-btn {
+    flex-shrink: 0;
+    margin: 8px 0 8px 8px;
+    padding: 0 14px;
+    height: 36px;
+    background: rgba(20, 184, 166, 0.1);
+    color: var(--primary-light);
+    border: 1px solid rgba(20, 184, 166, 0.3);
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .mobile-signin-btn.signed {
+    background: rgba(34, 197, 94, 0.1);
+    color: #86efac;
+    border-color: rgba(34, 197, 94, 0.3);
+  }
+
+  /* ========== 底部导航栏 ========== */
+  .mobile-bottom-bar {
+    display: flex !important;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 60px;
+    background: var(--bg-soft) !important;
+    border-top: 1px solid var(--border);
+    z-index: 1000;
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+  }
+  .mb-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.7rem;
+    flex: 1;
+    height: 100%;
+    position: relative;
+  }
+  .mb-item svg {
+    width: 22px;
+    height: 22px;
+    margin-bottom: 2px;
+    stroke: currentColor;
+  }
+  .mb-item.active { color: var(--primary-light); }
+
+  /* 中间发布按钮凸起 */
+  .mb-center {
+    position: relative;
+    transform: translateY(-12px);
+  }
+  .mb-plus {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 300;
+    box-shadow: 0 4px 12px rgba(20, 184, 166, 0.5);
+    border: 3px solid var(--bg-soft);
+  }
+  .mb-center span {
+    margin-top: 2px;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+  }
+
+  /* ========== 性能优化与旧桌面结构隐藏 ========== */
+  * {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .card, .main-header, .tip-modal, .announcement-modal {
+    background: var(--bg-soft) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+    border-radius: 12px !important;
+    transition: none !important;
+  }
+  .card::before, .card::after, .post-card::after, .link-card::after {
+    display: none !important;
+  }
+  .main-header {
+    background: var(--bg-soft) !important;
+    border-bottom: 1px solid var(--border);
+    box-shadow: none !important;
+  }
+  .header-search, .main-nav { display: none !important; }
+  .stats-panel, .col-left, .col-right, footer { display: none !important; }
+  .layout { grid-template-columns: 1fr !important; gap: 0 !important; }
+
+  /* 页面底部留白，防止被底部导航遮挡 */
+  .page {
+    padding: 12px 10px 85px 10px !important;
+  }
+
+  /* ========== 首页卡片流紧凑优化 ========== */
+  .post-card {
+    margin-bottom: 8px !important;
+    padding: 12px 14px !important;
+  }
+  .post-card h3 {
+    font-size: 1rem !important;
+    margin-bottom: 6px !important;
+  }
+  .post-card .card-body {
+    font-size: 0.85rem !important;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .post-card .card-foot {
+    margin-top: 8px !important;
+    padding-top: 6px !important;
+    font-size: 0.75rem !important;
+  }
+
+  .boards-home-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
+  .board-home-card { padding: 14px !important; }
+  .board-home-icon {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 1.3rem !important;
+    border-radius: 12px !important;
+  }
+  .board-home-name { font-size: 1.1rem !important; }
+
+  /* 移动端侧边栏兼容 */
+  .mobile-sidebar, .mobile-sidebar-mask { display: block !important; }
+  .mobile-menu-btn { display: flex !important; }
+}
+
+/* ============================================================
+   账号设置弹窗
+   ============================================================ */
+.settings-modal-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: fadeIn 0.25s ease;
+}
+
+.settings-modal {
+  width: 100%;
+  max-width: 420px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--card-bg);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 1.5rem 1.6rem;
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.85);
+  animation: modalIn 0.3s var(--ease);
+}
+
+.settings-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.2rem;
+}
+.settings-head h3 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-strong);
+  margin: 0;
+}
+.settings-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.25s var(--ease);
+}
+.settings-close:hover {
+  background: var(--card-bg-hover);
+  color: var(--text-strong);
+  transform: rotate(90deg);
+}
+.settings-close svg { width: 15px; height: 15px; stroke: currentColor; }
+
+.settings-item {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
+  padding: 0.9rem 1rem;
+  margin-bottom: 0.5rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: all 0.25s var(--ease);
+}
+.settings-item:hover {
+  background: var(--card-bg-hover);
+  border-color: var(--border-hover);
+  transform: translateX(3px);
+}
+.settings-item.danger:hover {
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.06);
+}
+.settings-item-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  width: 32px;
+  text-align: center;
+}
+.settings-item-body {
+  flex: 1;
+  min-width: 0;
+}
+.settings-item-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-strong);
+  margin-bottom: 0.15rem;
+}
+.settings-item.danger .settings-item-title { color: #f87171; }
+.settings-item-desc {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+.settings-item-arrow {
+  font-size: 1rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: transform 0.25s var(--ease);
+}
+.settings-item:hover .settings-item-arrow {
+  transform: translateX(3px);
+  color: var(--primary-light);
+}
+.settings-item.danger:hover .settings-item-arrow { color: #f87171; }
+
+.settings-back {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 1rem;
+  transition: color 0.25s;
+}
+.settings-back:hover { color: var(--primary-light); }
+
+.settings-warning {
+  padding: 0.9rem 1rem;
+  margin-bottom: 1rem;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 10px;
+  font-size: 0.85rem;
+  color: #fca5a5;
+  line-height: 1.6;
+}
+[data-theme="light"] .settings-warning {
+  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  box-shadow: 0 6px 18px -8px rgba(239, 68, 68, 0.7);
+}
+.btn-danger:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px -8px rgba(239, 68, 68, 0.9);
+  color: #fff;
+}
+
+@media (max-width: 520px) {
+  .settings-modal {
+    padding: 1.2rem 1.2rem;
+    border-radius: 16px;
+  }
+  .settings-head h3 { font-size: 1.05rem; }
+  .settings-item { padding: 0.8rem 0.9rem; }
+  .settings-item-icon { font-size: 1.2rem; width: 26px; }
+}
+/* ============================================================
+   修复：手机端顶部空白
+   ============================================================ */
+@media (max-width: 800px) {
+  /* 1. header 不再 sticky，避免和 mobile-top-nav 抢顶部位置 */
+  .main-header {
+    position: relative !important;
+    background: var(--bg-soft) !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  /* 2. 压缩 header 内部，只留汉堡按钮 + 品牌名 */
+  .header-inner {
+    padding: 0.55rem 0.9rem !important;
+    gap: 0.5rem !important;
+    min-height: 0 !important;
+    align-items: center;
+  }
+
+  .mobile-menu-btn {
+    width: 36px !important;
+    height: 36px !important;
+  }
+  .mobile-menu-btn svg { width: 18px; height: 18px; }
+
+  .brand {
+    font-size: 0.95rem !important;
+  }
+  .brand::before {
+    width: 8px; height: 8px;
+  }
+
+  /* 3. mobile-top-nav 承担 sticky，紧贴 header 下方，无间隙 */
+  .mobile-top-nav {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 999 !important;
+    margin: 0 !important;
+    padding: 0 10px !important;
+    background: var(--bg-soft) !important;
+    border-top: 1px solid var(--border) !important;
+    border-bottom: 1px solid var(--border) !important;
+    box-shadow: none !important;
+  }
+
+  /* 4. 防止 body 有多余的上边距 */
+  body {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+  }
+}
+/* ============================================================
+   修复：手机端顶部空白
+   ============================================================ */
+@media (max-width: 800px) {
+  /* 1. header 不再 sticky，让 mobile-top-nav 当唯一的吸顶元素 */
+  .main-header {
+    position: relative !important;
+    top: auto !important;
+    background: var(--bg-soft) !important;
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* 2. 压缩 header-inner 高度，去掉多余空隙 */
+  .header-inner {
+    padding: 0.5rem 0.9rem !important;
+    gap: 0.5rem !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    align-items: center;
+  }
+
+  /* 3. mobile-top-nav 紧贴 header，无缝隙 */
+  .mobile-top-nav {
+    display: flex !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 999 !important;
+    margin: 0 !important;
+    padding: 0 10px !important;
+    background: var(--bg-soft) !important;
+    border-top: 1px solid var(--border) !important;
+    border-bottom: 1px solid var(--border) !important;
+    box-shadow: none !important;
+    min-height: 0 !important;
+  }
+
+  /* 4. body 不留上边距 */
+  body {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+  }
+}
+/* ============================================================
+   修复：手机端 header 保持彩色渐变，避免白底白字
+   ============================================================ */
+@media (max-width: 800px) {
+  /* header 用原来的渐变背景，不要改成白色 */
+  .main-header {
+    position: relative !important;
+    top: auto !important;
+    background: var(--header-bg) !important;
+    border: none !important;
+    box-shadow: 0 2px 12px -4px rgba(20, 184, 166, 0.35) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* header 内部紧凑 */
+  .header-inner {
+    padding: 0.55rem 0.9rem !important;
+    gap: 0.5rem !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    align-items: center;
+  }
+
+  /* 让品牌名和汉堡按钮在渐变上保持白色 */
+  .brand,
+  .brand-name {
+    color: #fff !important;
+  }
+  .mobile-menu-btn {
+    color: #fff !important;
+  }
+  .mobile-menu-btn svg {
+    stroke: #fff;
+  }
+
+  /* mobile-top-nav 紧贴 header 下方 */
+  .mobile-top-nav {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 999 !important;
+    margin: 0 !important;
+    padding: 0 10px !important;
+    background: var(--bg-soft) !important;
+    border-top: none !important;
+    border-bottom: 1px solid var(--border) !important;
+    box-shadow: none !important;
+    min-height: 0 !important;
+  }
+
+  body {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+  }
 }

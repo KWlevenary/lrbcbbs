@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#0a0e1a">
 <title>个人主页 · 老弱病残BBS</title>
 <link rel="stylesheet" href="assets/style.css">
+<script src="assets/lib/supabase-umd.js"></script>
 <script>
   (function () {
     try {
@@ -20,7 +21,6 @@
 
 <header class="main-header">
   <div class="header-inner">
-    <!-- 移动端汉堡 -->
     <button class="mobile-menu-btn" id="mobile-menu-btn" type="button" aria-label="打开菜单">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="3" y1="6" x2="21" y2="6"/>
@@ -65,7 +65,7 @@
   </div>
 </header>
 
-<!-- ============ 移动端侧边栏 ============ -->
+<!-- 移动端侧边栏 -->
 <div class="mobile-sidebar-mask" id="mobile-sidebar-mask"></div>
 
 <aside class="mobile-sidebar" id="mobile-sidebar" aria-label="侧边栏">
@@ -163,10 +163,76 @@
   </div>
 </div>
 
+<!-- ============ 账号设置弹窗 ============ -->
+<div class="settings-modal-mask" id="settings-modal" style="display:none;">
+  <div class="settings-modal">
+    <div class="settings-head">
+      <h3>账号设置</h3>
+      <button class="settings-close" id="settings-close" type="button" aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- 设置菜单 -->
+    <div id="settings-menu">
+      <button class="settings-item" id="open-change-pwd" type="button">
+        <span class="settings-item-icon">🔑</span>
+        <div class="settings-item-body">
+          <div class="settings-item-title">修改密码</div>
+          <div class="settings-item-desc">定期更换密码，账号更安全</div>
+        </div>
+        <span class="settings-item-arrow">→</span>
+      </button>
+
+      <button class="settings-item danger" id="open-delete-account" type="button">
+        <span class="settings-item-icon">⚠️</span>
+        <div class="settings-item-body">
+          <div class="settings-item-title">注销账号</div>
+          <div class="settings-item-desc">永久删除账号及所有数据，不可恢复</div>
+        </div>
+        <span class="settings-item-arrow">→</span>
+      </button>
+    </div>
+
+    <!-- 修改密码面板 -->
+    <div id="change-pwd-panel" style="display:none;">
+      <button class="settings-back" id="change-pwd-back" type="button">← 返回</button>
+      <div id="change-pwd-msg" class="msg" style="display:none;"></div>
+      <div class="form-group">
+        <label>新密码</label>
+        <input id="settings-new-pwd" type="password" minlength="6" placeholder="至少 6 位" autocomplete="new-password">
+      </div>
+      <div class="form-group">
+        <label>确认新密码</label>
+        <input id="settings-confirm-pwd" type="password" minlength="6" placeholder="再次输入" autocomplete="new-password">
+      </div>
+      <button class="btn btn-primary" id="change-pwd-submit" type="button" style="width:100%;">确认修改</button>
+    </div>
+
+    <!-- 注销账号面板 -->
+    <div id="delete-account-panel" style="display:none;">
+      <button class="settings-back" id="delete-account-back" type="button">← 返回</button>
+      <div class="settings-warning">
+        ⚠️ 此操作不可撤销！账号下的所有帖子、评论、点赞、滚木等数据都将被永久删除。
+      </div>
+      <div id="delete-account-msg" class="msg" style="display:none;"></div>
+      <div class="form-group">
+        <label>请输入 <strong style="color:#f87171;">删除账号</strong> 四个字以确认</label>
+        <input id="settings-delete-confirm" type="text" placeholder="删除账号" autocomplete="off">
+      </div>
+      <button class="btn btn-danger" id="delete-account-submit" type="button" style="width:100%;">永久注销账号</button>
+    </div>
+
+  </div>
+</div>
+
 <script type="module">
 import { supabase } from './assets/supabase.js'
-import { $, $$, escapeHtml, formatTime, renderNav, getUser, bindCardGlow, initial } from './assets/app.js'
-import imageCompression from 'https://cdn.jsdelivr.net/npm/browser-image-compression@2/dist/browser-image-compression.mjs'
+import { $, $$, escapeHtml, formatTime, renderNav, getUser, bindCardGlow, initial, showMsg } from './assets/app.js'
+import imageCompression from './assets/lib/image-compression.js'
 
 renderNav()
 
@@ -178,7 +244,6 @@ const me = await getUser()
 let profile = null
 let isSelf = false
 
-// ============ 加载资料 ============
 if (targetId) {
   const { data } = await supabase.from('profiles').select('*').eq('id', targetId).single()
   profile = data
@@ -198,7 +263,6 @@ if (!profile) {
 
 isSelf = me && me.id === profile.id
 
-// ============ 统计数据 ============
 const [
   { count: postCount },
   { count: likeReceived },
@@ -213,7 +277,6 @@ const [
 
 const receivedWood = (tipReceivedSum || []).reduce((s, t) => s + (t.amount || 0), 0)
 
-// ============ 头像 HTML ============
 function avatarHtml(p, size = 96) {
   const cls = size >= 80 ? 'profile-avatar-lg' : 'avatar'
   if (p.avatar_url) {
@@ -222,7 +285,6 @@ function avatarHtml(p, size = 96) {
   return `<div class="${cls}">${escapeHtml(initial(p.username))}</div>`
 }
 
-// ============ 渲染页面 ============
 $('#main').innerHTML = `
   <div class="card profile-hero">
     <div class="profile-avatar-wrap ${isSelf ? 'editable' : ''}" id="avatar-wrap">
@@ -246,6 +308,12 @@ $('#main').innerHTML = `
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+          <button class="icon-btn" id="open-settings-btn" title="账号设置" style="margin-left:0.3rem;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
             </svg>
           </button>
         ` : ''}
@@ -288,7 +356,6 @@ $('#main').innerHTML = `
 
 bindCardGlow($('#main'))
 
-// ============ 头像上传 ============
 const avatarWrap = document.getElementById('avatar-wrap')
 const avatarInput = document.getElementById('avatar-input')
 
@@ -350,7 +417,6 @@ if (isSelf && avatarInput) {
   }
 }
 
-// ============ 昵称编辑 ============
 const nameModal = document.getElementById('name-modal')
 const newNameInput = document.getElementById('new-name-input')
 
@@ -397,7 +463,6 @@ if (nameModal) {
   }
 }
 
-// ============ Tab 切换 ============
 $$('.profile-tab').forEach(btn => {
   btn.onclick = () => {
     $$('.profile-tab').forEach(b => b.classList.remove('active'))
@@ -563,6 +628,120 @@ async function loadTab(t) {
 }
 
 loadTab('posts')
+
+// ============================================================
+// 账号设置：修改密码 / 注销账号
+// ============================================================
+const settingsModal = document.getElementById('settings-modal')
+const settingsMenu = document.getElementById('settings-menu')
+const changePwdPanel = document.getElementById('change-pwd-panel')
+const deleteAccountPanel = document.getElementById('delete-account-panel')
+
+function showSettingsMenu() {
+  settingsMenu.style.display = 'block'
+  changePwdPanel.style.display = 'none'
+  deleteAccountPanel.style.display = 'none'
+}
+
+const openSettingsBtn = document.getElementById('open-settings-btn')
+if (openSettingsBtn) {
+  openSettingsBtn.onclick = () => {
+    settingsModal.style.display = 'flex'
+    showSettingsMenu()
+    document.getElementById('settings-new-pwd').value = ''
+    document.getElementById('settings-confirm-pwd').value = ''
+    document.getElementById('settings-delete-confirm').value = ''
+    document.getElementById('change-pwd-msg').style.display = 'none'
+    document.getElementById('delete-account-msg').style.display = 'none'
+  }
+}
+
+document.getElementById('settings-close').onclick = () => {
+  settingsModal.style.display = 'none'
+}
+settingsModal.onclick = (e) => {
+  if (e.target === settingsModal) settingsModal.style.display = 'none'
+}
+
+// --- 修改密码 ---
+document.getElementById('open-change-pwd').onclick = () => {
+  settingsMenu.style.display = 'none'
+  changePwdPanel.style.display = 'block'
+}
+document.getElementById('change-pwd-back').onclick = showSettingsMenu
+
+document.getElementById('change-pwd-submit').onclick = async () => {
+  const btn = document.getElementById('change-pwd-submit')
+  const msgEl = document.getElementById('change-pwd-msg')
+  const pwd = document.getElementById('settings-new-pwd').value
+  const pwd2 = document.getElementById('settings-confirm-pwd').value
+
+  if (!pwd || pwd.length < 6) {
+    showMsg(msgEl, '密码至少 6 位', 'error'); return
+  }
+  if (pwd !== pwd2) {
+    showMsg(msgEl, '两次输入的密码不一致', 'error'); return
+  }
+
+  btn.disabled = true
+  btn.textContent = '修改中…'
+
+  const { error } = await supabase.auth.updateUser({ password: pwd })
+
+  if (error) {
+    let text = error.message
+    if (text.includes('same as the old password') || text.includes('New password should be different')) {
+      text = '新密码不能与旧密码相同'
+    }
+    showMsg(msgEl, text, 'error')
+    btn.disabled = false
+    btn.textContent = '确认修改'
+    return
+  }
+
+  showMsg(msgEl, '✓ 密码修改成功', 'success')
+  btn.disabled = false
+  btn.textContent = '确认修改'
+  document.getElementById('settings-new-pwd').value = ''
+  document.getElementById('settings-confirm-pwd').value = ''
+  setTimeout(() => { settingsModal.style.display = 'none' }, 1200)
+}
+
+// --- 注销账号 ---
+document.getElementById('open-delete-account').onclick = () => {
+  settingsMenu.style.display = 'none'
+  deleteAccountPanel.style.display = 'block'
+}
+document.getElementById('delete-account-back').onclick = showSettingsMenu
+
+document.getElementById('delete-account-submit').onclick = async () => {
+  const btn = document.getElementById('delete-account-submit')
+  const msgEl = document.getElementById('delete-account-msg')
+  const confirmText = document.getElementById('settings-delete-confirm').value.trim()
+
+  if (confirmText !== '删除账号') {
+    showMsg(msgEl, '请输入“删除账号”四个字以确认', 'error')
+    return
+  }
+
+  if (!confirm('最后确认：账号及所有数据将被永久删除，且无法恢复！')) return
+
+  btn.disabled = true
+  btn.textContent = '注销中…'
+
+  const { data, error } = await supabase.rpc('delete_my_account')
+
+  if (error || !data?.success) {
+    showMsg(msgEl, error?.message || data?.error || '注销失败', 'error')
+    btn.disabled = false
+    btn.textContent = '永久注销账号'
+    return
+  }
+
+  await supabase.auth.signOut()
+  alert('账号已注销，感谢使用。')
+  location.href = 'index.html'
+}
 
 // ============================================================
 // 移动端侧边栏

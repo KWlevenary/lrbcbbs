@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#0a0e1a">
 <title>老弱病残BBS</title>
 <link rel="stylesheet" href="assets/style.css">
+<script src="assets/lib/supabase-umd.js"></script>
 <script>
   (function () {
     try {
@@ -20,7 +21,6 @@
 
 <header class="main-header">
   <div class="header-inner">
-    <!-- 移动端汉堡按钮 -->
     <button class="mobile-menu-btn" id="mobile-menu-btn" type="button" aria-label="打开菜单">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="3" y1="6" x2="21" y2="6"/>
@@ -68,11 +68,19 @@
   </div>
 </header>
 
+<!-- ============ 移动端顶部板块导航（必须紧跟在 </header> 后面） ============ -->
+<div class="mobile-top-nav" id="mobile-top-nav">
+  <a href="boards.html?tag=游戏">游戏</a>
+  <a href="boards.html?tag=工具">工具</a>
+  <a href="boards.html?tag=软件">软件</a>
+  <a href="boards.html?tag=其他">其他</a>
+  <button class="mobile-signin-btn" id="mobile-signin-btn" type="button">📅 签到</button>
+</div>
+
 <!-- ============ 移动端侧边栏 ============ -->
 <div class="mobile-sidebar-mask" id="mobile-sidebar-mask"></div>
 
 <aside class="mobile-sidebar" id="mobile-sidebar" aria-label="侧边栏">
-  <!-- 用户信息 -->
   <div class="mobile-sidebar-head">
     <div class="ms-avatar" id="ms-avatar">?</div>
     <div class="ms-user-info">
@@ -93,87 +101,69 @@
     </button>
   </div>
 
-  <!-- 侧边栏内容 -->
   <div class="mobile-sidebar-body">
-
-    <!-- 公告 -->
     <div class="ms-group-title">公告</div>
     <div id="ms-announcements" class="ms-announcements">
       <div style="text-align:center;padding:1rem;color:var(--text-muted);font-size:0.82rem;">加载中…</div>
     </div>
 
-    <!-- 快捷操作 -->
     <div class="ms-group-title">快捷</div>
-
     <button class="ms-item ms-signin" id="ms-signin-btn" type="button">
       <span class="ms-icon">📅</span>
       <span class="ms-text">今日签到</span>
       <span class="ms-hint" id="ms-signin-hint">+1 滚木</span>
     </button>
-
     <a href="new.html" class="ms-item">
       <span class="ms-icon">✏️</span>
       <span class="ms-text">发新帖</span>
       <span class="ms-arrow">→</span>
     </a>
-
     <a href="boards.html" class="ms-item">
       <span class="ms-icon">📚</span>
       <span class="ms-text">全部帖子</span>
       <span class="ms-arrow">→</span>
     </a>
 
-    <!-- 用户面板 -->
     <div class="ms-group-title">我的</div>
-
     <a href="profile.html" class="ms-item">
       <span class="ms-icon">👤</span>
       <span class="ms-text">个人主页</span>
       <span class="ms-arrow">→</span>
     </a>
-
     <a href="messages.html" class="ms-item">
       <span class="ms-icon">🔔</span>
       <span class="ms-text">消息通知</span>
       <span class="ms-arrow">→</span>
     </a>
-
     <a href="admin.html" class="ms-item" id="ms-admin" style="display:none;">
       <span class="ms-icon">🛡️</span>
       <span class="ms-text">管理面板</span>
       <span class="ms-arrow">→</span>
     </a>
 
-    <!-- 设置 -->
     <div class="ms-group-title">设置</div>
-
     <button class="ms-item" id="ms-theme-btn" type="button">
       <span class="ms-icon">🌙</span>
       <span class="ms-text">色调调整</span>
       <span class="ms-hint" id="ms-theme-hint">深色</span>
     </button>
 
-    <!-- 底部：登录/退出 -->
     <div class="ms-divider"></div>
-
     <button class="ms-item ms-logout" id="ms-logout" type="button" style="display:none;">
       <span class="ms-icon">🚪</span>
       <span class="ms-text">退出登录</span>
     </button>
-
     <a href="login.html" class="ms-item ms-login" id="ms-login" style="display:none;">
       <span class="ms-icon">🔑</span>
       <span class="ms-text">登录 / 注册</span>
       <span class="ms-arrow">→</span>
     </a>
-
   </div>
 </aside>
 
 <!-- ============ 页面主体 ============ -->
 <div class="page">
 
-  <!-- 统计 + 时钟（移动端隐藏） -->
   <section class="stats-panel" id="stats">
     <div class="stats-grid">
       <div class="stat-ball">
@@ -214,10 +204,7 @@
     </div>
   </section>
 
-  <!-- 三栏布局 -->
   <div class="layout">
-
-    <!-- 左侧栏（移动端隐藏） -->
     <aside class="col-side col-left">
       <div class="card announcement-card">
         <div class="card-title-bar">
@@ -230,7 +217,6 @@
       </div>
     </aside>
 
-    <!-- 主内容 -->
     <main class="col-main">
       <div class="page-section-head">
         <h2>📂 板块导航</h2>
@@ -242,7 +228,6 @@
       </div>
     </main>
 
-    <!-- 右侧栏（移动端隐藏） -->
     <aside class="col-side col-right">
       <div class="card signin-card">
         <div class="signin-head">
@@ -267,7 +252,6 @@
         </div>
       </div>
     </aside>
-
   </div>
 
 </div>
@@ -275,6 +259,41 @@
 <footer>
   <p>© 2026 老弱病残BBS · 用爱发电</p>
 </footer>
+
+<!-- ============ 移动端底部导航栏 ============ -->
+<div class="mobile-bottom-bar">
+  <a href="index.html" class="mb-item active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+      <polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+    <span>首页</span>
+  </a>
+  <a href="boards.html" class="mb-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+    <span>帖子</span>
+  </a>
+  <a href="new.html" class="mb-item mb-center">
+    <div class="mb-plus">+</div>
+    <span>发帖</span>
+  </a>
+  <a href="messages.html" class="mb-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+    </svg>
+    <span>消息</span>
+  </a>
+  <a href="profile.html" class="mb-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+      <circle cx="12" cy="7" r="4"/>
+    </svg>
+    <span>我的</span>
+  </a>
+</div>
 
 <script type="module">
 import { supabase } from './assets/supabase.js'
@@ -314,7 +333,6 @@ function initMobileSidebar() {
   })
 }
 
-// 填充侧边栏用户信息
 async function fillSidebarUser() {
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -335,7 +353,6 @@ async function fillSidebarUser() {
 
     const name = profile?.username || user.email || '用户'
 
-    // 头像优先显示图片
     if (avatarEl) {
       if (profile?.avatar_url) {
         avatarEl.innerHTML = `<img src="${escapeHtml(profile.avatar_url)}" alt="${escapeHtml(name)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
@@ -359,7 +376,6 @@ async function fillSidebarUser() {
   }
 }
 
-// 侧边栏主题切换
 function initSidebarTheme() {
   const btn = document.getElementById('ms-theme-btn')
   const hint = document.getElementById('ms-theme-hint')
@@ -385,7 +401,6 @@ function initSidebarTheme() {
   }
 }
 
-// 侧边栏签到
 async function initSidebarSignin() {
   const btn = document.getElementById('ms-signin-btn')
   const hint = document.getElementById('ms-signin-hint')
@@ -436,7 +451,6 @@ async function initSidebarSignin() {
   }
 }
 
-// 侧边栏退出
 function initSidebarLogout() {
   const btn = document.getElementById('ms-logout')
   if (!btn) return
@@ -639,48 +653,69 @@ function openAnnouncementModal(a) {
 }
 
 // ============================================================
-// 桌面端签到（右侧栏）
+// 签到（桌面端 + 移动端同时绑定）
 // ============================================================
-const signinBtn = document.getElementById('signin-btn')
-const signinHint = document.getElementById('signin-hint')
+async function initSignin() {
+  const desktopBtn = document.getElementById('signin-btn')
+  const desktopHint = document.getElementById('signin-hint')
+  const mobileBtn = document.getElementById('mobile-signin-btn')
 
-async function initDesktopSignin() {
-  if (!signinBtn) return
+  if (!desktopBtn && !mobileBtn) return
+
   const { data: { user } } = await supabase.auth.getUser()
 
+  let alreadySigned = false
   if (user) {
     const today = new Date().toISOString().slice(0, 10)
     const { data: checkin } = await supabase
       .from('checkins').select('date')
       .eq('user_id', user.id).eq('date', today).maybeSingle()
+    alreadySigned = !!checkin
+  }
 
-    if (checkin) {
-      signinBtn.textContent = '✓ 已签到'
-      signinBtn.disabled = true
-      signinHint.textContent = '明天再来~'
+  const applySigned = () => {
+    if (desktopBtn) {
+      desktopBtn.textContent = '✓ 已签到'
+      desktopBtn.disabled = true
+    }
+    if (desktopHint) desktopHint.textContent = '明天再来~'
+    if (mobileBtn) {
+      mobileBtn.textContent = '✅ 已签到'
+      mobileBtn.classList.add('signed')
+      mobileBtn.disabled = true
     }
   }
 
-  signinBtn.onclick = async () => {
+  if (alreadySigned) applySigned()
+
+  const handleSignin = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { location.href = 'login.html?redirect=index.html'; return }
-    signinBtn.disabled = true
-    signinBtn.textContent = '签到中…'
+
+    if (desktopBtn) { desktopBtn.disabled = true; desktopBtn.textContent = '签到中…' }
+    if (mobileBtn) { mobileBtn.disabled = true; mobileBtn.textContent = '签到中…' }
 
     const { data, error } = await supabase.rpc('daily_checkin')
 
     if (error || !data?.success) {
-      signinHint.textContent = error?.message || data?.error || '签到失败'
-      signinBtn.disabled = false
-      signinBtn.textContent = '今日签到'
+      const errMsg = error?.message || data?.error || '签到失败'
+      if (desktopHint) desktopHint.textContent = errMsg
+      if (desktopBtn) { desktopBtn.disabled = false; desktopBtn.textContent = '今日签到' }
+      if (mobileBtn) { mobileBtn.disabled = false; mobileBtn.textContent = '📅 签到' }
       return
     }
 
-    signinBtn.textContent = '✓ 已签到'
-    signinHint.textContent = '签到成功！+1 滚木'
+    applySigned()
+    if (desktopHint) desktopHint.textContent = '签到成功！+1 滚木'
+
     const navWood = document.getElementById('nav-wood')
     if (navWood) navWood.textContent = Number(navWood.textContent) + 1
+    const msWood = document.getElementById('ms-wood-num')
+    if (msWood) msWood.textContent = Number(msWood.textContent) + 1
   }
+
+  if (desktopBtn) desktopBtn.onclick = handleSignin
+  if (mobileBtn) mobileBtn.onclick = handleSignin
 }
 
 // ============================================================
@@ -694,7 +729,7 @@ initSidebarLogout()
 loadSidebarAnnouncements()
 loadBoards()
 loadAnnouncements()
-initDesktopSignin()
+initSignin()
 </script>
 </body>
 </html>
