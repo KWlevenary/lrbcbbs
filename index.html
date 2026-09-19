@@ -160,6 +160,7 @@
 </aside>
 
 <div class="page">
+
   <section class="stats-panel" id="stats">
     <div class="stats-grid">
       <div class="stat-ball">
@@ -201,6 +202,7 @@
   </section>
 
   <div class="layout">
+
     <aside class="col-side col-left">
       <div class="card announcement-card">
         <div class="card-title-bar">
@@ -214,14 +216,28 @@
     </aside>
 
     <main class="col-main">
-      <div class="page-section-head">
-        <h2>📂 板块导航</h2>
-        <span class="sub">选择一个板块浏览</span>
+
+      <!-- 桌面端：板块导航 -->
+      <div id="board-section">
+        <div class="page-section-head">
+          <h2>📂 板块导航</h2>
+          <span class="sub">选择一个板块浏览</span>
+        </div>
+
+        <div class="boards-home-grid" id="boards-home">
+          <div class="empty">加载中…</div>
+        </div>
       </div>
 
-      <div class="boards-home-grid" id="boards-home">
-        <div class="empty">加载中…</div>
+      <!-- 手机端：直接显示帖子列表 -->
+      <div id="posts-section" style="display:none;">
+        <div class="page-section-head">
+          <h2>📚 最新帖子</h2>
+          <span class="sub">按发布时间排序</span>
+        </div>
+        <div id="home-posts"><div class="empty">加载中…</div></div>
       </div>
+
     </main>
 
     <aside class="col-side col-right">
@@ -248,7 +264,9 @@
         </div>
       </div>
     </aside>
+
   </div>
+
 </div>
 
 <footer>
@@ -291,13 +309,13 @@
 
 <script type="module">
 import { supabase } from './assets/supabase.js'
-import { renderNav, loadStats, escapeHtml, formatTime } from './assets/app.js'
+import { renderNav, loadStats, loadPosts, escapeHtml, formatTime } from './assets/app.js'
 
 renderNav()
 loadStats()
 
 // ============================================================
-// 移动端侧边栏
+// 手机端侧边栏
 // ============================================================
 function initMobileSidebar() {
   const btn = document.getElementById('mobile-menu-btn')
@@ -455,6 +473,9 @@ function initSidebarLogout() {
   }
 }
 
+// ============================================================
+// 侧边栏公告
+// ============================================================
 async function loadSidebarAnnouncements() {
   const box = document.getElementById('ms-announcements')
   if (!box) return
@@ -486,6 +507,9 @@ async function loadSidebarAnnouncements() {
   })
 }
 
+// ============================================================
+// 四大板块
+// ============================================================
 const BOARDS = [
   { key: '游戏', icon: '🎮', desc: '游戏讨论、攻略、资源', color: 'linear-gradient(135deg, #a855f7, #ec4899)' },
   { key: '工具', icon: '🔧', desc: '效率工具、脚本、插件', color: 'linear-gradient(135deg, #14b8a6, #22d3ee)' },
@@ -503,7 +527,7 @@ async function loadBoards() {
     .order('created_at', { ascending: false })
 
   if (error) {
-    box.innerHTML = `<div class="empty">加载失败：${escapeHtml(error.message)}</div>`
+    box.innerHTML = '<div class="empty">加载失败：' + escapeHtml(error.message) + '</div>'
     return
   }
 
@@ -563,6 +587,27 @@ async function loadBoards() {
   }).join('')
 }
 
+// ============================================================
+// 首页布局：手机显示帖子，桌面显示板块
+// ============================================================
+async function initHomeLayout() {
+  const boardSection = document.getElementById('board-section')
+  const postsSection = document.getElementById('posts-section')
+
+  if (window.innerWidth <= 800) {
+    boardSection.style.display = 'none'
+    postsSection.style.display = 'block'
+    await loadPosts('home-posts')
+  } else {
+    boardSection.style.display = 'block'
+    postsSection.style.display = 'none'
+    await loadBoards()
+  }
+}
+
+// ============================================================
+// 桌面端公告（左侧栏）
+// ============================================================
 const annList = document.getElementById('announcement-list')
 const annCount = document.getElementById('announcement-count')
 
@@ -643,6 +688,9 @@ function openAnnouncementModal(a) {
   document.addEventListener('keydown', onEsc)
 }
 
+// ============================================================
+// 签到（桌面端 + 移动端同时绑定）
+// ============================================================
 async function initSignin() {
   const desktopBtn = document.getElementById('signin-btn')
   const desktopHint = document.getElementById('signin-hint')
@@ -706,13 +754,16 @@ async function initSignin() {
   if (mobileBtn) mobileBtn.onclick = handleSignin
 }
 
+// ============================================================
+// 初始化
+// ============================================================
 initMobileSidebar()
 fillSidebarUser()
 initSidebarTheme()
 initSidebarSignin()
 initSidebarLogout()
 loadSidebarAnnouncements()
-loadBoards()
+initHomeLayout()
 loadAnnouncements()
 initSignin()
 </script>
