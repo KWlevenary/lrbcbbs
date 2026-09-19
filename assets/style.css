@@ -4132,3 +4132,38 @@ footer {
     margin-top: 0 !important;
   }
 }
+/* ============================================================
+   管理面板：删除用户按钮
+   ============================================================ */
+.admin-del {
+  color: #f87171 !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+  font-weight: 700 !important;
+}
+.admin-del:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.18) !important;
+  border-color: rgba(239, 68, 68, 0.55) !important;
+  color: #fca5a5 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px -6px rgba(239, 68, 68, 0.5);
+}
+.admin-del:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+/* ============================================================
+   修复：手机端侧边栏抽屉半透明
+   ============================================================ */
+@media (max-width: 800px) {
+  .mobile-sidebar {
+    background: var(--bg-soft) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .mobile-sidebar-mask {
+    background: rgba(0, 0, 0, 0.75) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
