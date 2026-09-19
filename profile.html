@@ -65,6 +65,7 @@
   </div>
 </header>
 
+<!-- 移动端侧边栏 -->
 <div class="mobile-sidebar-mask" id="mobile-sidebar-mask"></div>
 
 <aside class="mobile-sidebar" id="mobile-sidebar" aria-label="侧边栏">
@@ -147,6 +148,7 @@
   <div id="main"><div class="empty">加载中…</div></div>
 </div>
 
+<!-- 编辑昵称弹窗 -->
 <div class="tip-modal-mask" id="name-modal" style="display:none;">
   <div class="tip-modal" style="max-width:420px;">
     <h3>修改昵称</h3>
@@ -161,6 +163,7 @@
   </div>
 </div>
 
+<!-- ============ 账号设置弹窗 ============ -->
 <div class="settings-modal-mask" id="settings-modal" style="display:none;">
   <div class="settings-modal">
     <div class="settings-head">
@@ -173,6 +176,7 @@
       </button>
     </div>
 
+    <!-- 设置菜单 -->
     <div id="settings-menu">
       <button class="settings-item" id="open-change-pwd" type="button">
         <span class="settings-item-icon">🔑</span>
@@ -193,6 +197,7 @@
       </button>
     </div>
 
+    <!-- 修改密码面板 -->
     <div id="change-pwd-panel" style="display:none;">
       <button class="settings-back" id="change-pwd-back" type="button">← 返回</button>
       <div id="change-pwd-msg" class="msg" style="display:none;"></div>
@@ -207,6 +212,7 @@
       <button class="btn btn-primary" id="change-pwd-submit" type="button" style="width:100%;">确认修改</button>
     </div>
 
+    <!-- 注销账号面板 -->
     <div id="delete-account-panel" style="display:none;">
       <button class="settings-back" id="delete-account-back" type="button">← 返回</button>
       <div class="settings-warning">
@@ -226,6 +232,7 @@
 <script type="module">
 import { supabase } from './assets/supabase.js'
 import { $, $$, escapeHtml, formatTime, renderNav, getUser, bindCardGlow, initial, showMsg } from './assets/app.js'
+import { uploadToCloudinary } from './assets/cloudinary.js'
 import imageCompression from './assets/lib/image-compression.js'
 
 renderNav()
@@ -250,7 +257,7 @@ if (targetId) {
 }
 
 if (!profile) {
-  $('#main').innerHTML = '<div class="empty">' + (me ? '未找到该用户' : '请先登录') + '</div>'
+  $('#main').innerHTML = `<div class="empty">${me ? '未找到该用户' : '请先登录'}</div>`
   if (!me) setTimeout(() => location.href = 'login.html?redirect=' + encodeURIComponent(location.pathname + location.search), 800)
   throw new Error('no profile')
 }
@@ -271,13 +278,12 @@ const [
 
 const receivedWood = (tipReceivedSum || []).reduce((s, t) => s + (t.amount || 0), 0)
 
-function avatarHtml(p, size) {
-  if (size == null) size = 96
+function avatarHtml(p, size = 96) {
   const cls = size >= 80 ? 'profile-avatar-lg' : 'avatar'
   if (p.avatar_url) {
-    return '<img src="' + escapeHtml(p.avatar_url) + '" alt="' + escapeHtml(p.username) + '" class="' + cls + '" style="object-fit:cover;">'
+    return `<img src="${escapeHtml(p.avatar_url)}" alt="${escapeHtml(p.username)}" class="${cls}" style="object-fit:cover;">`
   }
-  return '<div class="' + cls + '">' + escapeHtml(initial(p.username)) + '</div>'
+  return `<div class="${cls}">${escapeHtml(initial(p.username))}</div>`
 }
 
 $('#main').innerHTML = `
@@ -317,11 +323,11 @@ $('#main').innerHTML = `
 
       <div class="profile-stats">
         <div class="profile-stat">
-          <div class="profile-stat-val">${(profile.rolling_wood == null) ? 0 : profile.rolling_wood}</div>
+          <div class="profile-stat-val">${profile.rolling_wood ?? 0}</div>
           <div class="profile-stat-lbl">滚木余额</div>
         </div>
         <div class="profile-stat">
-          <div class="profile-stat-val">${postCount == null ? 0 : postCount}</div>
+          <div class="profile-stat-val">${postCount ?? 0}</div>
           <div class="profile-stat-lbl">发布帖子</div>
         </div>
         <div class="profile-stat">
@@ -329,7 +335,7 @@ $('#main').innerHTML = `
           <div class="profile-stat-lbl">收到滚木</div>
         </div>
         <div class="profile-stat">
-          <div class="profile-stat-val">${likeReceived == null ? 0 : likeReceived}</div>
+          <div class="profile-stat-val">${likeReceived ?? 0}</div>
           <div class="profile-stat-lbl">收到点赞</div>
         </div>
       </div>
@@ -358,11 +364,12 @@ if (isSelf && avatarInput) {
   avatarWrap.onclick = () => avatarInput.click()
 
   avatarInput.onchange = async () => {
-    const file = avatarInput.files && avatarInput.files[0]
+    const file = avatarInput.files?.[0]
     if (!file) return
-    if (file.type.indexOf('image/') !== 0) return alert('请选择图片文件')
+    if (!file.type.startsWith('image/')) return alert('请选择图片文件')
 
     try {
+      // 1. 前端压缩到 400px
       const compressed = await imageCompression(file, {
         maxWidthOrHeight: 400,
         useWebWorker: true,
@@ -371,29 +378,20 @@ if (isSelf && avatarInput) {
         maxSizeMB: 0.3
       })
 
-      const path = profile.id + '/' + Date.now() + '.webp'
+      // 2. 上传到 Cloudinary（专用头像文件夹，自动裁成 400×400 正方形）
+      const r = await uploadToCloudinary(compressed, {
+        folder: 'lrbcbbs/avatars',
+        transformation: 'c_fill,g_face,w_400,h_400/q_auto:good/f_auto'
+      })
+      const url = r.url
 
-      const { error: upErr } = await supabase.storage
-        .from('avatars')
-        .upload(path, compressed, { contentType: 'image/webp', upsert: false })
-
-      if (upErr) throw upErr
-
-      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
-      const url = urlData.publicUrl
-
+      // 3. 更新数据库
       const { error: dbErr } = await supabase
         .from('profiles')
         .update({ avatar_url: url })
         .eq('id', profile.id)
 
       if (dbErr) throw dbErr
-
-      const oldUrl = profile.avatar_url
-      if (oldUrl && oldUrl.indexOf('/avatars/') !== -1) {
-        const oldPath = oldUrl.split('/avatars/')[1]
-        if (oldPath) await supabase.storage.from('avatars').remove([oldPath])
-      }
 
       profile.avatar_url = url
       avatarWrap.innerHTML = `
@@ -477,8 +475,8 @@ async function loadTab(t) {
       .eq('author_id', profile.id)
       .order('created_at', { ascending: false })
 
-    if (!data || !data.length) {
-      box.innerHTML = '<div class="empty">' + (isSelf ? '还没有发过帖子，<a href="new.html">去发一篇</a>' : 'TA 还没有发过帖子') + '</div>'
+    if (!data?.length) {
+      box.innerHTML = `<div class="empty">${isSelf ? '还没有发过帖子，' : ''}${isSelf ? '<a href="new.html">去发一篇</a>' : 'TA 还没有发过帖子'}</div>`
       return
     }
 
@@ -489,9 +487,6 @@ async function loadTab(t) {
         .replace(/[#*>`~_\-]/g, '')
         .replace(/\n+/g, ' ').trim()
       const summary = raw.slice(0, 120) + (raw.length > 120 ? '…' : '')
-      const cCount = (p.comments && p.comments[0] && p.comments[0].count) || 0
-      const lCount = (p.likes && p.likes[0] && p.likes[0].count) || 0
-      const tCount = (p.tips && p.tips[0] && p.tips[0].count) || 0
       return `
         <div class="card post-card" style="animation-delay:${Math.min(i * 55, 400)}ms;">
           <a href="post.html?id=${p.id}" class="post-link"></a>
@@ -499,9 +494,9 @@ async function loadTab(t) {
           <div class="card-body">${escapeHtml(summary)}</div>
           <div class="card-foot">
             <span class="stat">${formatTime(p.created_at)}</span>
-            <span class="stat">💬 ${cCount}</span>
-            <span class="stat">❤️ ${lCount}</span>
-            <span class="stat">🪵 ${tCount}</span>
+            <span class="stat">💬 ${p.comments?.[0]?.count ?? 0}</span>
+            <span class="stat">❤️ ${p.likes?.[0]?.count ?? 0}</span>
+            <span class="stat">🪵 ${p.tips?.[0]?.count ?? 0}</span>
             <span class="stat" style="color:var(--primary-light);margin-left:auto;">查看 →</span>
           </div>
         </div>
@@ -523,10 +518,10 @@ async function loadTab(t) {
           .order('created_at', { ascending: false }).limit(50)
       ])
 
-      const all = []
-        .concat((received || []).map(r => Object.assign({}, r, { type: 'in', other: (r.profiles && r.profiles.username) || '匿名' })))
-        .concat((sent || []).map(s => Object.assign({}, s, { type: 'out', other: (s.profiles && s.profiles.username) || '匿名' })))
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      const all = [
+        ...(received || []).map(r => ({ ...r, type: 'in', other: r.profiles?.username || '匿名' })),
+        ...(sent || []).map(s => ({ ...s, type: 'out', other: s.profiles?.username || '匿名' }))
+      ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 
       if (!all.length) {
         box.innerHTML = '<div class="empty">还没有滚木收支记录</div>'
@@ -539,10 +534,10 @@ async function loadTab(t) {
             <div class="tip-item">
               <div class="tip-info">
                 <div class="tip-title">
-                  <a href="post.html?id=${t.posts && t.posts.id}">${escapeHtml((t.posts && t.posts.title) || '（已删除）')}</a>
+                  <a href="post.html?id=${t.posts?.id}">${escapeHtml(t.posts?.title || '（已删除）')}</a>
                 </div>
                 <div class="tip-meta">
-                  ${t.type === 'in' ? '来自 ' + escapeHtml(t.other) : '赠予 ' + escapeHtml(t.other)}
+                  ${t.type === 'in' ? `来自 ${escapeHtml(t.other)}` : `赠予 ${escapeHtml(t.other)}`}
                   · ${formatTime(t.created_at)}
                 </div>
               </div>
@@ -564,7 +559,7 @@ async function loadTab(t) {
         .eq('to_user', profile.id)
         .order('created_at', { ascending: false }).limit(50)
 
-      if (!data || !data.length) {
+      if (!data?.length) {
         box.innerHTML = '<div class="empty">还没有收到滚木</div>'
         return
       }
@@ -575,10 +570,10 @@ async function loadTab(t) {
             <div class="tip-item">
               <div class="tip-info">
                 <div class="tip-title">
-                  <a href="post.html?id=${t.posts && t.posts.id}">${escapeHtml((t.posts && t.posts.title) || '（已删除）')}</a>
+                  <a href="post.html?id=${t.posts?.id}">${escapeHtml(t.posts?.title || '（已删除）')}</a>
                 </div>
                 <div class="tip-meta">
-                  来自 ${escapeHtml((t.profiles && t.profiles.username) || '匿名')} · ${formatTime(t.created_at)}
+                  来自 ${escapeHtml(t.profiles?.username || '匿名')} · ${formatTime(t.created_at)}
                 </div>
               </div>
               <span class="tip-amount in">
@@ -603,7 +598,7 @@ async function loadTab(t) {
       .order('date', { ascending: false })
       .limit(60)
 
-    if (!data || !data.length) {
+    if (!data?.length) {
       box.innerHTML = '<div class="empty">还没有签到记录，去首页签到吧</div>'
       return
     }
@@ -661,6 +656,7 @@ settingsModal.onclick = (e) => {
   if (e.target === settingsModal) settingsModal.style.display = 'none'
 }
 
+// --- 修改密码 ---
 document.getElementById('open-change-pwd').onclick = () => {
   settingsMenu.style.display = 'none'
   changePwdPanel.style.display = 'block'
@@ -687,8 +683,7 @@ document.getElementById('change-pwd-submit').onclick = async () => {
 
   if (error) {
     let text = error.message
-    const low = text.toLowerCase()
-    if (low.indexOf('same as the old password') !== -1 || low.indexOf('new password should be different') !== -1) {
+    if (text.includes('same as the old password') || text.includes('New password should be different')) {
       text = '新密码不能与旧密码相同'
     }
     showMsg(msgEl, text, 'error')
@@ -705,6 +700,7 @@ document.getElementById('change-pwd-submit').onclick = async () => {
   setTimeout(() => { settingsModal.style.display = 'none' }, 1200)
 }
 
+// --- 注销账号 ---
 document.getElementById('open-delete-account').onclick = () => {
   settingsMenu.style.display = 'none'
   deleteAccountPanel.style.display = 'block'
@@ -728,8 +724,8 @@ document.getElementById('delete-account-submit').onclick = async () => {
 
   const { data, error } = await supabase.rpc('delete_my_account')
 
-  if (error || !data || !data.success) {
-    showMsg(msgEl, (error && error.message) || (data && data.error) || '注销失败', 'error')
+  if (error || !data?.success) {
+    showMsg(msgEl, error?.message || data?.error || '注销失败', 'error')
     btn.disabled = false
     btn.textContent = '永久注销账号'
     return
@@ -784,18 +780,18 @@ async function fillSidebarUser() {
       .from('profiles').select('username, role, rolling_wood, avatar_url')
       .eq('id', user.id).single()
 
-    const name = (p && p.username) || user.email || '用户'
+    const name = p?.username || user.email || '用户'
     if (avatarEl) {
-      if (p && p.avatar_url) {
-        avatarEl.innerHTML = '<img src="' + escapeHtml(p.avatar_url) + '" alt="' + escapeHtml(name) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">'
+      if (p?.avatar_url) {
+        avatarEl.innerHTML = `<img src="${escapeHtml(p.avatar_url)}" alt="${escapeHtml(name)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
       } else {
         avatarEl.textContent = name.trim()[0].toUpperCase()
       }
     }
     if (usernameEl) usernameEl.textContent = name
     if (woodEl) woodEl.style.display = 'inline-flex'
-    if (woodNumEl) woodNumEl.textContent = (p && p.rolling_wood != null) ? p.rolling_wood : 0
-    if (p && p.role === 'admin' && adminEl) adminEl.style.display = 'flex'
+    if (woodNumEl) woodNumEl.textContent = p?.rolling_wood ?? 0
+    if (p?.role === 'admin' && adminEl) adminEl.style.display = 'flex'
     if (logoutEl) logoutEl.style.display = 'flex'
     if (loginEl) loginEl.style.display = 'none'
   } else {
@@ -858,8 +854,8 @@ async function initSidebarSignin() {
     if (hint) hint.textContent = '签到中…'
 
     const { data, error } = await supabase.rpc('daily_checkin')
-    if (error || !data || !data.success) {
-      if (hint) hint.textContent = (error && error.message) || (data && data.error) || '失败'
+    if (error || !data?.success) {
+      if (hint) hint.textContent = error?.message || data?.error || '失败'
       btn.disabled = false
       return
     }

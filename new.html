@@ -127,6 +127,7 @@
   </div>
 </div>
 
+<!-- 链接卡片弹窗 -->
 <div class="lc-modal-mask" id="lc-modal" style="display:none;">
   <div class="lc-modal">
     <h3 class="lc-modal-title">🔗 插入链接卡片</h3>
@@ -190,6 +191,7 @@
 <script type="module">
 import { supabase } from './assets/supabase.js'
 import { $, $$, showMsg, renderNav, requireLogin } from './assets/app.js'
+import { uploadToCloudinary } from './assets/cloudinary.js'
 import { marked } from './assets/lib/marked.js'
 import DOMPurify from './assets/lib/purify.js'
 import imageCompression from './assets/lib/image-compression.js'
@@ -206,7 +208,7 @@ const statusEl = $('#upload-status')
 const boardInput = $('#tags-major')
 
 function esc(s) {
-  return String(s == null ? '' : s)
+  return String(s ?? '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 }
@@ -223,28 +225,28 @@ function renderMd(text) {
         title: title.trim(),
         desc: desc.trim(),
         icon: icon.trim(),
-        color: ['blue','green','purple','orange','red','cyan'].indexOf(color.trim()) !== -1 ? color.trim() : 'blue'
+        color: ['blue','green','purple','orange','red','cyan'].includes(color.trim()) ? color.trim() : 'blue'
       })
-      return '%%CARD_' + idx + '%%'
+      return `%%CARD_${idx}%%`
     })
 
   let html = DOMPurify.sanitize(marked.parse(text), {
     ADD_ATTR: ['target', 'rel']
   })
 
-  const buildCard = (c) => '<a class="link-card link-card-' + c.color + '" href="' + esc(c.url) + '" target="_blank" rel="noopener noreferrer nofollow">' +
-    '<div class="link-card-icon">' + esc(c.icon) + '</div>' +
-    '<div class="link-card-body">' +
-      '<div class="link-card-title">' + esc(c.title) + '</div>' +
-      (c.desc ? '<div class="link-card-desc">' + esc(c.desc) + '</div>' : '') +
-    '</div>' +
-    '<div class="link-card-arrow">' +
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
-        '<line x1="5" y1="12" x2="19" y2="12"/>' +
-        '<polyline points="12 5 19 12 12 19"/>' +
-      '</svg>' +
-    '</div>' +
-  '</a>'
+  const buildCard = (c) => `<a class="link-card link-card-${c.color}" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer nofollow">
+    <div class="link-card-icon">${esc(c.icon)}</div>
+    <div class="link-card-body">
+      <div class="link-card-title">${esc(c.title)}</div>
+      ${c.desc ? `<div class="link-card-desc">${esc(c.desc)}</div>` : ''}
+    </div>
+    <div class="link-card-arrow">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"/>
+        <polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </div>
+  </a>`
 
   html = html.replace(/<p>\s*%%CARD_(\d+)%%\s*<\/p>/g, (m, idx) => buildCard(cards[Number(idx)]) || '')
   html = html.replace(/%%CARD_(\d+)%%/g, (m, idx) => buildCard(cards[Number(idx)]) || '')
@@ -267,20 +269,17 @@ selector.querySelectorAll('.board-option').forEach(btn => {
 })
 
 const validTags = ['游戏', '工具', '软件', '其他']
-if (urlTag && validTags.indexOf(urlTag) !== -1) selectBoard(urlTag)
+if (urlTag && validTags.includes(urlTag)) selectBoard(urlTag)
 else selectBoard('其他')
 
-function setStatus(text, type) {
-  if (type == null) type = 'info'
+function setStatus(text, type = 'info') {
   if (!text) { statusEl.style.display = 'none'; return }
   statusEl.style.display = 'block'
   statusEl.textContent = text
   statusEl.className = 'upload-status ' + type
 }
 
-function insertSyntax(before, after, placeholder) {
-  if (after == null) after = ''
-  if (placeholder == null) placeholder = ''
+function insertSyntax(before, after = '', placeholder = '') {
   const ta = contentEl
   const start = ta.selectionStart
   const end = ta.selectionEnd
@@ -306,7 +305,7 @@ const INSERTS = {
     const url = prompt('链接地址：', 'https://')
     if (!url) return
     const text = prompt('显示文字：', url) || url
-    insertSyntax('[' + text + '](' + url + ')')
+    insertSyntax(`[${text}](${url})`)
   }
 }
 
@@ -349,7 +348,7 @@ function updateLcPreview() {
       <div class="link-card-icon">${esc(lcIcon)}</div>
       <div class="link-card-body">
         <div class="link-card-title">${esc(title)}</div>
-        ${desc ? '<div class="link-card-desc">' + esc(desc) + '</div>' : ''}
+        ${desc ? `<div class="link-card-desc">${esc(desc)}</div>` : ''}
       </div>
       <div class="link-card-arrow">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -393,9 +392,9 @@ document.getElementById('lc-confirm').onclick = () => {
   const desc = lcDescInput.value.trim()
   if (!url) return alert('请输入链接地址')
   if (!title) return alert('请输入卡片标题')
-  if (url.indexOf('|') !== -1) return alert('链接中不能包含竖线 |')
+  if (url.includes('|')) return alert('链接中不能包含竖线 |')
 
-  const syntax = '\n[[CARD:' + url + '|' + title + '|' + desc + '|' + lcIcon + '|' + lcColor + ']]\n'
+  const syntax = `\n[[CARD:${url}|${title}|${desc}|${lcIcon}|${lcColor}]]\n`
   insertSyntax(syntax)
   closeLinkCardModal()
 }
@@ -420,13 +419,15 @@ $$('.tab-btn').forEach(btn => {
   }
 })
 
-const BUCKET = 'post-images'
+// ============================================================
+// 图片上传（走 Cloudinary 图床）
+// ============================================================
 const MAX_SIZE = 10 * 1024 * 1024
 const COMPRESS_THRESHOLD = 500 * 1024
 const MAX_DIMENSION = 1920
 
 async function compressIfNeeded(file) {
-  if (file.size <= COMPRESS_THRESHOLD) return { file: file, compressed: false, saved: 0 }
+  if (file.size <= COMPRESS_THRESHOLD) return { file, compressed: false, saved: 0 }
   const originalSize = file.size
   try {
     const compressed = await imageCompression(file, {
@@ -435,48 +436,48 @@ async function compressIfNeeded(file) {
       initialQuality: 0.8,
       fileType: 'image/webp',
       maxSizeMB: 2,
-      onProgress: (p) => setStatus('压缩中… ' + Math.round(p) + '%', 'info')
+      onProgress: (p) => setStatus(`压缩中… ${Math.round(p)}%`, 'info')
     })
-    if (compressed.size >= originalSize) return { file: file, compressed: false, saved: 0 }
+    if (compressed.size >= originalSize) return { file, compressed: false, saved: 0 }
     const newName = file.name.replace(/\.[^.]+$/, '') + '.webp'
     return { file: new File([compressed], newName, { type: 'image/webp' }), compressed: true, saved: originalSize - compressed.size }
-  } catch (err) { return { file: file, compressed: false, saved: 0 } }
+  } catch (err) { return { file, compressed: false, saved: 0 } }
 }
 
 async function uploadImage(file) {
   if (!file.type.startsWith('image/')) throw new Error('不是图片文件')
-  if (file.size > MAX_SIZE) throw new Error('图片超过 ' + (MAX_SIZE / 1024 / 1024) + 'MB')
+  if (file.size > MAX_SIZE) throw new Error(`图片超过 ${MAX_SIZE / 1024 / 1024}MB`)
+
   setStatus('处理中…', 'info')
   const result = await compressIfNeeded(file)
   const uploadFile = result.file
+
   if (result.compressed) {
     const savedKB = Math.round(result.saved / 1024)
     const newKB = Math.round(uploadFile.size / 1024)
-    setStatus('已压缩，省 ' + savedKB + ' KB（现 ' + newKB + ' KB）', 'success')
+    setStatus(`已压缩，省 ${savedKB} KB（现 ${newKB} KB）`, 'success')
   }
-  const ext = (uploadFile.name.split('.').pop() || 'png').toLowerCase()
-  const rand = Math.random().toString(36).slice(2, 8)
-  const path = user.id + '/' + Date.now() + '-' + rand + '.' + ext
-  const { error } = await supabase.storage.from(BUCKET).upload(path, uploadFile, {
-    cacheControl: '3600', upsert: false, contentType: uploadFile.type
+
+  setStatus('上传到图床…', 'info')
+  const r = await uploadToCloudinary(uploadFile, {
+    folder: 'lrbcbbs/posts',
+    transformation: 'c_limit,w_1920/q_auto:good/f_auto'
   })
-  if (error) throw error
-  const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path)
-  return urlData.publicUrl
+  return r.url
 }
 
 async function uploadAndInsert(file) {
   const name = file.name || 'image'
   const safeName = name.length > 14 ? name.slice(0, 14) + '…' : name
   try {
-    setStatus('处理 ' + safeName + '…', 'info')
+    setStatus(`处理 ${safeName}…`, 'info')
     const url = await uploadImage(file)
     const alt = (file.name || 'image').replace(/\.[^.]+$/, '')
-    insertSyntax('![' + alt + '](' + url + ')\n')
-    setStatus('✓ ' + safeName + ' 上传完成', 'success')
+    insertSyntax(`![${alt}](${url})\n`)
+    setStatus(`✓ ${safeName} 上传完成`, 'success')
     setTimeout(() => setStatus(''), 1800)
   } catch (err) {
-    setStatus('✗ ' + safeName + '：' + err.message, 'error')
+    setStatus(`✗ ${safeName}：${err.message}`, 'error')
     setTimeout(() => setStatus(''), 3500)
   }
 }
@@ -496,8 +497,8 @@ fileInput.onchange = async () => {
 }
 
 contentEl.addEventListener('paste', async (e) => {
-  const items = Array.from((e.clipboardData && e.clipboardData.items) || [])
-  const imageItems = items.filter(it => it.type.indexOf('image/') === 0)
+  const items = Array.from(e.clipboardData?.items || [])
+  const imageItems = items.filter(it => it.type.startsWith('image/'))
   if (!imageItems.length) return
   e.preventDefault()
   for (const item of imageItems) {
@@ -505,7 +506,7 @@ contentEl.addEventListener('paste', async (e) => {
     if (file) {
       if (!file.name || file.name === 'image.png') {
         const ext = (file.type.split('/')[1] || 'png').toLowerCase()
-        Object.defineProperty(file, 'name', { value: 'pasted-' + Date.now() + '.' + ext, writable: false })
+        Object.defineProperty(file, 'name', { value: `pasted-${Date.now()}.${ext}`, writable: false })
       }
       await uploadAndInsert(file)
     }
@@ -528,7 +529,7 @@ contentEl.addEventListener('drop', async (e) => {
   dragDepth = 0
   contentEl.style.borderColor = ''
   contentEl.style.boxShadow = ''
-  const files = Array.from((e.dataTransfer && e.dataTransfer.files) || []).filter(f => f.type.indexOf('image/') === 0)
+  const files = Array.from(e.dataTransfer?.files || []).filter(f => f.type.startsWith('image/'))
   for (const file of files) await uploadAndInsert(file)
 })
 
@@ -565,7 +566,7 @@ $('#form').onsubmit = async (e) => {
   }
 
   showMsg($('#msg'), '发布成功，正在跳转…', 'success')
-  setTimeout(() => { location.href = 'post.html?id=' + data.id }, 500)
+  setTimeout(() => { location.href = `post.html?id=${data.id}` }, 500)
 }
 </script>
 </body>
