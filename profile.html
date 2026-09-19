@@ -65,7 +65,6 @@
   </div>
 </header>
 
-<!-- 移动端侧边栏 -->
 <div class="mobile-sidebar-mask" id="mobile-sidebar-mask"></div>
 
 <aside class="mobile-sidebar" id="mobile-sidebar" aria-label="侧边栏">
@@ -176,7 +175,6 @@
       </button>
     </div>
 
-    <!-- 设置菜单 -->
     <div id="settings-menu">
       <button class="settings-item" id="open-change-pwd" type="button">
         <span class="settings-item-icon">🔑</span>
@@ -197,7 +195,6 @@
       </button>
     </div>
 
-    <!-- 修改密码面板 -->
     <div id="change-pwd-panel" style="display:none;">
       <button class="settings-back" id="change-pwd-back" type="button">← 返回</button>
       <div id="change-pwd-msg" class="msg" style="display:none;"></div>
@@ -212,7 +209,6 @@
       <button class="btn btn-primary" id="change-pwd-submit" type="button" style="width:100%;">确认修改</button>
     </div>
 
-    <!-- 注销账号面板 -->
     <div id="delete-account-panel" style="display:none;">
       <button class="settings-back" id="delete-account-back" type="button">← 返回</button>
       <div class="settings-warning">
@@ -232,8 +228,63 @@
 <script type="module">
 import { supabase } from './assets/supabase.js'
 import { $, $$, escapeHtml, formatTime, renderNav, getUser, bindCardGlow, initial, showMsg } from './assets/app.js'
-import { uploadToCloudinary } from './assets/cloudinary.js'
 import imageCompression from './assets/lib/image-compression.js'
+
+// ============================================================
+// Cloudinary 图床（内联版，兼容 unsigned 上传）
+// ============================================================
+const CLOUD_NAME = 'osdae2bq'
+const UPLOAD_PRESET = 'lrbcbbs'
+
+async function uploadToCloudinary(file, options) {
+  if (options == null) options = {}
+  const folder = options.folder || 'lrbcbbs'
+  const apiUrl = 'https://api.cloudinary.com/v1_1/' + CLOUD_NAME + '/image/upload'
+
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('upload_preset', UPLOAD_PRESET)
+  formData.append('folder', folder)
+  // ⚠️ unsigned 模式下不允许传 transformation，改为上传后拼 URL
+
+  const res = await fetch(apiUrl, { method: 'POST', body: formData })
+
+  if (!res.ok) {
+    let errMsg = 'Cloudinary 上传失败（HTTP ' + res.status + '）'
+    try {
+      const errJson = await res.json()
+      if (errJson && errJson.error && errJson.error.message) {
+        errMsg = errJson.error.message
+      }
+    } catch (e) {}
+    throw new Error(errMsg)
+  }
+
+  const data = await res.json()
+
+  let finalUrl = data.secure_url
+  if (options.transformation) {
+    const marker = '/image/upload/'
+    const idx = finalUrl.indexOf(marker)
+    if (idx !== -1) {
+      const before = finalUrl.slice(0, idx + marker.length)
+      const after = finalUrl.slice(idx + marker.length)
+      const first = after.charAt(0)
+      if (first !== 'q' && first !== 'c' && first !== 'f' && first !== 'w') {
+        finalUrl = before + options.transformation + '/' + after
+      }
+    }
+  }
+
+  return {
+    url: finalUrl,
+    publicId: data.public_id,
+    width: data.width,
+    height: data.height,
+    bytes: data.bytes,
+    format: data.format
+  }
+}
 
 renderNav()
 
@@ -369,7 +420,6 @@ if (isSelf && avatarInput) {
     if (!file.type.startsWith('image/')) return alert('请选择图片文件')
 
     try {
-      // 1. 前端压缩到 400px
       const compressed = await imageCompression(file, {
         maxWidthOrHeight: 400,
         useWebWorker: true,
@@ -378,14 +428,12 @@ if (isSelf && avatarInput) {
         maxSizeMB: 0.3
       })
 
-      // 2. 上传到 Cloudinary（专用头像文件夹，自动裁成 400×400 正方形）
       const r = await uploadToCloudinary(compressed, {
         folder: 'lrbcbbs/avatars',
         transformation: 'c_fill,g_face,w_400,h_400/q_auto:good/f_auto'
       })
       const url = r.url
 
-      // 3. 更新数据库
       const { error: dbErr } = await supabase
         .from('profiles')
         .update({ avatar_url: url })

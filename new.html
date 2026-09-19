@@ -93,7 +93,7 @@
 
       <div class="form-group">
         <label>小标签（可选，最多 5 个，用逗号分隔）</label>
-        <input id="tags-minor" type="text" placeholder="埃及吧填啥填啥" maxlength="100">
+        <input id="tags-minor" type="text" placeholder="埃及吧填啥" maxlength="100">
       </div>
 
       <div class="form-group">
@@ -127,7 +127,6 @@
   </div>
 </div>
 
-<!-- 链接卡片弹窗 -->
 <div class="lc-modal-mask" id="lc-modal" style="display:none;">
   <div class="lc-modal">
     <h3 class="lc-modal-title">🔗 插入链接卡片</h3>
@@ -191,10 +190,67 @@
 <script type="module">
 import { supabase } from './assets/supabase.js'
 import { $, $$, showMsg, renderNav, requireLogin } from './assets/app.js'
-import { uploadToCloudinary } from './assets/cloudinary.js'
 import { marked } from './assets/lib/marked.js'
 import DOMPurify from './assets/lib/purify.js'
 import imageCompression from './assets/lib/image-compression.js'
+
+// ============================================================
+// Cloudinary 图床（内联版，兼容 unsigned 上传）
+// ============================================================
+const CLOUD_NAME = 'osdae2bq'
+const UPLOAD_PRESET = 'lrbcbbs'
+
+async function uploadToCloudinary(file, options) {
+  if (options == null) options = {}
+  const folder = options.folder || 'lrbcbbs'
+  const apiUrl = 'https://api.cloudinary.com/v1_1/' + CLOUD_NAME + '/image/upload'
+
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('upload_preset', UPLOAD_PRESET)
+  formData.append('folder', folder)
+  // ⚠️ unsigned 模式下不允许传 transformation，改为上传后拼 URL
+
+  const res = await fetch(apiUrl, { method: 'POST', body: formData })
+
+  if (!res.ok) {
+    let errMsg = 'Cloudinary 上传失败（HTTP ' + res.status + '）'
+    try {
+      const errJson = await res.json()
+      if (errJson && errJson.error && errJson.error.message) {
+        errMsg = errJson.error.message
+      }
+    } catch (e) {}
+    throw new Error(errMsg)
+  }
+
+  const data = await res.json()
+
+  // 把转换参数插入 URL：/image/upload/xxx → /image/upload/参数/xxx
+  let finalUrl = data.secure_url
+  if (options.transformation) {
+    const marker = '/image/upload/'
+    const idx = finalUrl.indexOf(marker)
+    if (idx !== -1) {
+      const before = finalUrl.slice(0, idx + marker.length)
+      const after = finalUrl.slice(idx + marker.length)
+      const first = after.charAt(0)
+      // 如果 URL 里已经有转换段（q_/c_/f_/w_），就不重复插入
+      if (first !== 'q' && first !== 'c' && first !== 'f' && first !== 'w') {
+        finalUrl = before + options.transformation + '/' + after
+      }
+    }
+  }
+
+  return {
+    url: finalUrl,
+    publicId: data.public_id,
+    width: data.width,
+    height: data.height,
+    bytes: data.bytes,
+    format: data.format
+  }
+}
 
 renderNav()
 const user = await requireLogin()
